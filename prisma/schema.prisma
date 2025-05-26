@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  age                   Int?
+  sex                   String?       // Consider Enum: SexType { MALE FEMALE OTHER }
+  height                Float?        // Storing as CM (Float allows for precision if needed, Int if always whole CMs)
+  weight                Float?        // Current weight in KG
+  targetWeight          Float?        // Target weight in KG
+  startingWeight        Float?        // Starting weight in KG at onboarding
+  goalType              String?       // Consider Enum: GoalType { WEIGHT_LOSS MUSCLE_GAIN ... }
+  experienceLevel       String?       // Consider Enum: ExperienceLevel { BEGINNER INTERMEDIATE ADVANCED }
+  weakPoints            String[]      // Optional, from onboarding
+  favoriteFoods         String[]      // Optional, from onboarding
+  allergies             String[]      // Optional, from onboarding
+  preferredWorkoutDays  String[]      // Renamed from preferredDays
+  targetDate            DateTime?     // Optional, from onboarding
+  hasCompletedOnboarding Boolean   @default(false)
+  
+  workoutPlans          WorkoutPlan[]
+  nutritionPlans        NutritionPlan[]
+  accounts              Account[]
+  sessions              Session[]
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model WorkoutPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  planName  String?  // Added plan name
+  plan      Json     // Stores the detailed JSON plan from OpenAI
+  startDate DateTime @default(now())
+  endDate   DateTime? // Made optional, will be set if targetDate is provided
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NutritionPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  planName  String?  // Added plan name
+  plan      Json     // Stores the detailed JSON plan from OpenAI
+  startDate DateTime @default(now())
+  endDate   DateTime? // Made optional, will be set if targetDate is provided
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Potentially add Enums if you want stricter type control for certain fields
+// enum SexType {
+//   MALE
+//   FEMALE
+//   OTHER // if you support it
+// }
+
+// enum GoalType {
+//   WEIGHT_LOSS
+//   MUSCLE_GAIN
+//   GENERAL_FITNESS
+//   STRENGTH_GAIN
+// }
+
+// enum ExperienceLevel {
+//   BEGINNER
+//   INTERMEDIATE
+//   ADVANCED
+// } 

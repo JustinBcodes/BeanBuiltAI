@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* Light background */
+    --foreground: 222.2 84% 4.9%; /* Dark foreground */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 173 58% 48%; /* Teal primary color */
+    --primary-foreground: 0 0% 100%; /* White text on teal */
+ 
+    --secondary: 210 40% 96.1%; /* Light secondary */
+    --secondary-foreground: 222.2 47.4% 11.2%; /* Dark secondary-foreground */
+ 
+    --muted: 210 40% 96.1%; /* Light muted */
+    --muted-foreground: 215.4 16.3% 46.9%; /* Muted foreground */
+ 
+    --accent: 173 58% 48%; /* Teal accent color */
+    --accent-foreground: 0 0% 100%; /* White text on teal */
+ 
+    --destructive: 0 84.2% 60.2%; /* Light destructive */
+    --destructive-foreground: 0 0% 98%; /* Light destructive-foreground */
+
+    --border: 214.3 31.8% 91.4%; /* Light border */
+    --input: 214.3 31.8% 91.4%; /* Light input background */
+    --ring: 173 58% 48%; /* Ring color based on teal */
+ 
+    --radius: 0.75rem; /* Your existing radius */
+ 
+    --chart-1: 173 58% 48%; /* Teal */
+    --chart-2: 173 58% 58%;
+    --chart-3: 173 58% 68%;
+    --chart-4: 173 58% 78%;
+    --chart-5: 173 58% 88%;
+  }
+ 
+  .dark {
+    --background: 220 21% 5%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 21% 7%;
+    --card-foreground: 0 0% 98%;
+ 
+    --popover: 220 21% 7%;
+    --popover-foreground: 0 0% 98%;
+ 
+    --primary: 173 58% 48%; /* Teal primary color */
+    --primary-foreground: 0 0% 100%; /* White text on teal */
+ 
+    --secondary: 220 21% 10%;
+    --secondary-foreground: 0 0% 98%;
+ 
+    --muted: 220 21% 10%;
+    --muted-foreground: 0 0% 63.9%;
+ 
+    --accent: 173 58% 48%; /* Teal accent color */
+    --accent-foreground: 0 0% 100%; /* White text on teal */
+ 
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 21% 15%;
+    --input: 220 21% 15%;
+    --ring: 173 58% 48%; /* Teal ring color */
+ 
+    /* --radius is the same for both themes */
+ 
+    /* Chart colors using teal theme */
+    --chart-1: 173 58% 48%; /* Teal */
+    --chart-2: 173 58% 58%;
+    --chart-3: 173 58% 68%;
+    --chart-4: 173 58% 78%;
+    --chart-5: 173 58% 88%;
+  }
+}
+ 
+@layer base {
+  /* * {
+    @apply border-border; // Removing this for now, apply borders explicitly
+  } */
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif; /* Ensure Inter is imported in layout.tsx */
+  }
+}
+
+@layer components {
+  input, textarea, select {
+    /* Using theme variables for inputs now */
+    @apply bg-input text-foreground placeholder:text-muted-foreground border border-border rounded-lg focus:border-primary focus:ring-ring/40;
+    /* Consider more specific selectors if these are too broad */
+  }
+}
