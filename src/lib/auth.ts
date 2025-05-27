@@ -45,8 +45,21 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    // maxAge: 30 * 24 * 60 * 60, // 30 days, example
-    // updateAge: 24 * 60 * 60, // 24 hours, example
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' 
+        ? "__Secure-next-auth.session-token" 
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -97,17 +110,8 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // If the URL is relative, make it absolute using the baseUrl
-      const absoluteUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
-
-      // Allow redirects to the base URL or onboarding page initially.
-      // More complex logic for post-onboarding redirect can be handled client-side
-      // based on session.user.hasCompletedOnboarding.
-      if (absoluteUrl.startsWith(baseUrl) || absoluteUrl.startsWith(`${baseUrl}/onboarding`)) {
-        return absoluteUrl;
-      }
-      // If not a safe URL, redirect to dashboard as a default authenticated landing page.
-      // This prevents redirects to external sites specified in a callbackUrl, for example.
+      // Always redirect to dashboard after successful authentication
+      // This ensures consistent behavior and prevents redirect loops
       return `${baseUrl}/dashboard`;
     },
   },
@@ -117,6 +121,6 @@ export const authOptions: NextAuthOptions = {
     // verifyRequest: '/auth/verify-request', // For email provider, if you add one
     // newUser: '/auth/new-user' // If you want a custom new user page (can be /onboarding)
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug logging to troubleshoot auth issues
   secret: process.env.NEXTAUTH_SECRET as string,
 }; 

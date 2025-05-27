@@ -31,7 +31,7 @@ export default function SignInPage() {
 
   const handleSignIn = async (provider: string) => {
     try {
-      await signIn(provider, { callbackUrl, redirect: true });
+      await signIn(provider, { callbackUrl: '/dashboard', redirect: true });
     } catch (err) {
       console.error('Sign in initiation error:', err)
     }
