@@ -19,7 +19,7 @@ const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sat
 
 export default function OnboardingPage() {
   // ALL HOOKS MUST BE AT THE TOP LEVEL
-  const { data: session, status: sessionStatus } = useSession()
+  const { data: session, status: sessionStatus, update: updateSession } = useSession()
   const router = useRouter()
   const setProfile = useStore(state => state.setProfile);
   const setWorkoutPlan = useStore(state => state.setWorkoutPlan);
@@ -304,9 +304,14 @@ export default function OnboardingPage() {
           duration: 5000,
         });
         
-        fetch('/api/auth/session', { method: 'GET' }).finally(() => {
-          setRedirectReady(true);
-        });
+        // Update the NextAuth session to reflect onboarding completion
+        try {
+          await updateSession();
+        } catch (error) {
+          console.error("Error updating session:", error);
+        }
+        
+        setRedirectReady(true);
 
       } else {
         console.error('[Onboarding] Incomplete data received from server. Result:', result);

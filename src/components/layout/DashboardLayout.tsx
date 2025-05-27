@@ -59,6 +59,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       console.log('DashboardLayout: Onboarding incomplete, redirecting to onboarding')
       router.push('/onboarding')
     }
+    
+    // If user has completed onboarding but is on onboarding page, redirect to dashboard
+    if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === true && pathname.startsWith('/onboarding')) {
+      console.log('DashboardLayout: Onboarding complete, redirecting to dashboard')
+      router.push('/dashboard')
+    }
   }, [isHydrated, status, profile, router, pathname])
 
   // Show loading state during hydration

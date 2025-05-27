@@ -27,22 +27,40 @@ export default async function middleware(request: NextRequestWithAuth) {
     )
   }
 
-  // Check if user has completed onboarding
+  // Check if user has completed onboarding for dashboard pages
   if (isDashboardPage && !isOnboardingPage) {
-    const response = await fetch(`${request.nextUrl.origin}/api/user/profile`, {
-      headers: {
-        cookie: request.headers.get('cookie') || '',
-      },
-    })
-
-    if (!response.ok) {
+    // Use token data first (faster), fallback to API if needed
+    if (token?.hasCompletedOnboarding === false) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
+    
+    // If token doesn't have onboarding status, check via API
+    if (token?.hasCompletedOnboarding === undefined) {
+      try {
+        const response = await fetch(`${request.nextUrl.origin}/api/user/profile`, {
+          headers: {
+            cookie: request.headers.get('cookie') || '',
+          },
+        })
 
-    const profile = await response.json()
-    if (!profile) {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
+        if (!response.ok) {
+          return NextResponse.redirect(new URL('/onboarding', request.url))
+        }
+
+        const profile = await response.json()
+        if (!profile || !profile.hasCompletedOnboarding) {
+          return NextResponse.redirect(new URL('/onboarding', request.url))
+        }
+      } catch (error) {
+        console.error('Middleware: Error checking profile:', error)
+        return NextResponse.redirect(new URL('/onboarding', request.url))
+      }
     }
+  }
+  
+  // If user has completed onboarding but is on onboarding page, redirect to dashboard
+  if (isOnboardingPage && token?.hasCompletedOnboarding === true) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return null

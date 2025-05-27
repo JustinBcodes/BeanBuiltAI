@@ -24,24 +24,34 @@ function ProfileLoader() {
 
   // Sync session → Zustand to prevent redirect loops
   useEffect(() => {
-    if (status === "authenticated" && session?.user && !profile) {
-      setProfile({
-        id: session.user.id,
-        name: session.user.name || '',
-        email: session.user.email || '',
-        hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
-        // Add default values for required fields
-        age: 25,
-        height: 70,
-        currentWeight: 150,
-        targetWeight: 140,
-        goalType: 'general_fitness',
-        experienceLevel: 'beginner',
-        preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
-        sex: 'male',
-      });
+    if (status === "authenticated" && session?.user) {
+      // Always update hasCompletedOnboarding from session to ensure sync
+      if (profile && profile.hasCompletedOnboarding !== session.user.hasCompletedOnboarding) {
+        console.log('ProfileLoader: Syncing hasCompletedOnboarding from session:', session.user.hasCompletedOnboarding)
+        setProfile({
+          ...profile,
+          hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
+        });
+      } else if (!profile) {
+        // Create initial profile from session data
+        setProfile({
+          id: session.user.id,
+          name: session.user.name || '',
+          email: session.user.email || '',
+          hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
+          // Add default values for required fields
+          age: 25,
+          height: 70,
+          currentWeight: 150,
+          targetWeight: 140,
+          goalType: 'general_fitness',
+          experienceLevel: 'beginner',
+          preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
+          sex: 'male',
+        });
+      }
     }
-  }, [status, session, profile, setProfile])
+  }, [status, session?.user?.hasCompletedOnboarding, profile?.hasCompletedOnboarding, profile, setProfile])
 
   useEffect(() => {
     async function loadProfileAndGeneratePlans() {

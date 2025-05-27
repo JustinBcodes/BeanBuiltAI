@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { NextAuthOptions } from "next-auth";
+import { prisma } from "@/lib/prisma";
 
 // Force this route to be dynamic
 export const dynamic = 'force-dynamic'
@@ -28,16 +29,43 @@ const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
+    async jwt({ token, user, trigger, session: clientSession }) {
+      // Initial sign-in - fetch hasCompletedOnboarding from database
+      if (user && user.id) {
+        token.id = user.id;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { hasCompletedOnboarding: true },
+          });
+          token.hasCompletedOnboarding = !!dbUser?.hasCompletedOnboarding;
+        } catch (error) {
+          console.error("Error fetching user onboarding status:", error);
+          token.hasCompletedOnboarding = false;
+        }
+      }
+
+      // Handle session updates (e.g., after onboarding completion)
+      if (trigger === "update" && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: { hasCompletedOnboarding: true },
+          });
+          if (dbUser) {
+            token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
+          }
+        } catch (error) {
+          console.error("Error updating user onboarding status in JWT:", error);
+        }
+      }
+
+      return token;
+    },
     async session({ session, token }) {
-      if (token?.sub) session.user.id = token.sub;
+      if (token?.id) session.user.id = token.id;
       session.user.hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
       return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.hasCompletedOnboarding = user.hasCompletedOnboarding ?? false;
-      }
-      return token;
     },
     async redirect({ baseUrl }) {
       return `${baseUrl}/dashboard`;
