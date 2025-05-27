@@ -55,11 +55,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
     // Only redirect if authenticated, profile is loaded, onboarding is not complete,
     // and we are not already on the onboarding page (to prevent loops if already there).
-    if (status === 'authenticated' && profile && !profile.hasCompletedOnboarding && !pathname.startsWith('/onboarding')) {
+    if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === false && !pathname.startsWith('/onboarding')) {
       console.log('DashboardLayout: Onboarding incomplete, redirecting to onboarding')
       router.push('/onboarding')
     }
-  }, [isHydrated, status, profile?.hasCompletedOnboarding, router, pathname])
+  }, [isHydrated, status, profile, router, pathname])
 
   // Show loading state during hydration
   if (!isHydrated) {
@@ -92,7 +92,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   // If authenticated but onboarding not complete, useEffect will redirect.
   // Render loading state until redirect happens or if already on onboarding page (which this layout wouldn't typically wrap).
-  if (status === 'authenticated' && profile && !profile.hasCompletedOnboarding) {
+  if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === false) {
     // If we are somehow on a page that uses DashboardLayout but should be on onboarding
     if (!pathname.startsWith('/onboarding')) {
       return (
@@ -106,7 +106,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
   
   // If all checks pass (authenticated, profile loaded, onboarding complete), render the layout
-  if (status === 'authenticated' && profile && profile.hasCompletedOnboarding) {
+  if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === true) {
     return (
       <div className="flex h-screen bg-gray-50">
         {/* Mobile sidebar */}

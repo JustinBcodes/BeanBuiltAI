@@ -28,8 +28,15 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.hasCompletedOnboarding = user.hasCompletedOnboarding ?? false;
+      }
+      return token;
+    },
     async session({ session, token }) {
-      if (token?.sub) session.user.id = token.sub;
+      session.user.id = token.sub;
+      session.user.hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
       return session;
     },
     async redirect({ baseUrl }) {

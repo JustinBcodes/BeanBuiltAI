@@ -10,10 +10,9 @@ interface StoreProviderProps {
 
 function ProfileLoader() {
   const { data: session, status } = useSession()
-  const profile = useStore(state => state.profile)
+  const { profile, setProfile } = useStore()
   const workoutPlan = useStore(state => state.workoutPlan)
   const nutritionPlan = useStore(state => state.nutritionPlan)
-  const setProfile = useStore(state => state.setProfile)
   const generatePlans = useStore(state => state.generatePlans)
   const [isHydrated, setIsHydrated] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
@@ -22,6 +21,27 @@ function ProfileLoader() {
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Sync session → Zustand to prevent redirect loops
+  useEffect(() => {
+    if (status === "authenticated" && session?.user && !profile) {
+      setProfile({
+        id: session.user.id,
+        name: session.user.name || '',
+        email: session.user.email || '',
+        hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
+        // Add default values for required fields
+        age: 25,
+        height: 70,
+        currentWeight: 150,
+        targetWeight: 140,
+        goalType: 'general_fitness',
+        experienceLevel: 'beginner',
+        preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
+        sex: 'male',
+      });
+    }
+  }, [status, session, profile, setProfile])
 
   useEffect(() => {
     async function loadProfileAndGeneratePlans() {
