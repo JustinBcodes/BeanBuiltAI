@@ -1,4 +1,4 @@
-# BeanBuilt AI
+# BeanBuilt AI beanbuiltai.com
 
 A personalized fitness and nutrition planning application powered by AI.
 
