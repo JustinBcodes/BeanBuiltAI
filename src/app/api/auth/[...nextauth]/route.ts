@@ -67,9 +67,17 @@ const authOptions: NextAuthOptions = {
       session.user.hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
       return session;
     },
-    async redirect({ baseUrl }) {
-      return `${baseUrl}/dashboard`;
+    async redirect({ url, baseUrl }) {
+      // Let middleware handle routing decisions instead of forcing /dashboard
+      // This prevents the redirect loop
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
+  },
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
   debug: true,
 };

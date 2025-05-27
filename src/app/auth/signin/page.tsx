@@ -21,17 +21,23 @@ export default function SignInPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  const from = searchParams.get('from') || '/dashboard'
 
+  // If already authenticated, middleware will handle redirect
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      router.push(callbackUrl)
+      // Let middleware handle the redirect decision based on onboarding status
+      router.push(from)
     }
-  }, [session, status, router, callbackUrl])
+  }, [session, status, router, from])
 
   const handleSignIn = async (provider: string) => {
     try {
-      await signIn(provider, { callbackUrl: '/dashboard', redirect: true });
+      // Don't specify callbackUrl here - let NextAuth and middleware handle routing
+      await signIn(provider, { 
+        callbackUrl: from,
+        redirect: true 
+      });
     } catch (err) {
       console.error('Sign in initiation error:', err)
     }

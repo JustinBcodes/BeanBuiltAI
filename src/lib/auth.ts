@@ -74,11 +74,16 @@ export const authOptions: NextAuthOptions = {
       // Initial sign-in
       if (user && user.id) { // user object is available on initial sign in
         token.id = user.id;
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { hasCompletedOnboarding: true },
-        });
-        token.hasCompletedOnboarding = !!dbUser?.hasCompletedOnboarding;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { hasCompletedOnboarding: true },
+          });
+          token.hasCompletedOnboarding = !!dbUser?.hasCompletedOnboarding;
+        } catch (error) {
+          console.error("Error fetching user onboarding status:", error);
+          token.hasCompletedOnboarding = false;
+        }
       }
 
       // If account is present (e.g., Google OAuth), store access token if needed
@@ -87,13 +92,17 @@ export const authOptions: NextAuthOptions = {
       }
       
       // Handle manual updates to the session (e.g., after onboarding completion)
-      if (trigger === "update" && clientSession?.user?.hasCompletedOnboarding !== undefined) {
-        const dbUser = await prisma.user.findUnique({
-            where: { id: token.id }, // Ensure token.id is set
+      if (trigger === "update" && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
             select: { hasCompletedOnboarding: true },
-        });
-        if (dbUser) {
+          });
+          if (dbUser) {
             token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
+          }
+        } catch (error) {
+          console.error("Error updating user onboarding status in JWT:", error);
         }
       }
 
@@ -110,9 +119,11 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Always redirect to dashboard after successful authentication
-      // This ensures consistent behavior and prevents redirect loops
-      return `${baseUrl}/dashboard`;
+      // Let middleware handle routing decisions instead of forcing /dashboard
+      // This prevents the redirect loop
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
   },
   pages: {

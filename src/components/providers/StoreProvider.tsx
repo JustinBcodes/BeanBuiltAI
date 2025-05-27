@@ -1,6 +1,6 @@
 'use client'
 
-import React, { ReactNode, useEffect, useState } from 'react'
+import React, { ReactNode, useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useStore } from '@/store'
 
@@ -15,127 +15,132 @@ function ProfileLoader() {
   const nutritionPlan = useStore(state => state.nutritionPlan)
   const generatePlans = useStore(state => state.generatePlans)
   const [isHydrated, setIsHydrated] = useState(false)
-  const [hasInitialized, setHasInitialized] = useState(false)
+  const hasInitialized = useRef(false)
+  const lastSessionId = useRef<string | null>(null)
 
   // Hydration guard
   useEffect(() => {
     setIsHydrated(true)
   }, [])
 
-  // Sync session → Zustand to prevent redirect loops
+  // Reset initialization when session changes
   useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      // Always update hasCompletedOnboarding from session to ensure sync
-      if (profile && profile.hasCompletedOnboarding !== session.user.hasCompletedOnboarding) {
-        console.log('ProfileLoader: Syncing hasCompletedOnboarding from session:', session.user.hasCompletedOnboarding)
-        setProfile({
-          ...profile,
-          hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
-        });
-      } else if (!profile) {
-        // Create initial profile from session data
-        setProfile({
-          id: session.user.id,
-          name: session.user.name || '',
-          email: session.user.email || '',
-          hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
-          // Add default values for required fields
-          age: 25,
-          height: 70,
-          currentWeight: 150,
-          targetWeight: 140,
-          goalType: 'general_fitness',
-          experienceLevel: 'beginner',
-          preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
-          sex: 'male',
-        });
-      }
+    if (session?.user?.id && session.user.id !== lastSessionId.current) {
+      lastSessionId.current = session.user.id
+      hasInitialized.current = false
+    } else if (!session?.user?.id) {
+      lastSessionId.current = null
+      hasInitialized.current = false
     }
-  }, [status, session?.user, profile, setProfile])
+  }, [session?.user?.id])
 
+  // Main profile loading and syncing logic
   useEffect(() => {
-    async function loadProfileAndGeneratePlans() {
-      // Don't proceed if not hydrated, already initialized, or session is loading
-      if (!isHydrated || hasInitialized || status === 'loading') {
-        return;
-      }
+    if (!isHydrated || status === 'loading' || hasInitialized.current) {
+      return
+    }
 
-      if (!session?.user) {
-        return;
-      }
-      
-      setHasInitialized(true);
-      
+    if (status === 'unauthenticated') {
+      return
+    }
+
+    if (!session?.user) {
+      return
+    }
+
+    hasInitialized.current = true
+
+    async function initializeProfile() {
       try {
-        // Load profile from API if we don't have one
-        if (!profile) {
-          const response = await fetch('/api/user/profile', {
-            credentials: 'include',
-            headers: {
-              'Cache-Control': 'no-cache'
-            }
+        // Always try to fetch the latest profile from API first
+        const response = await fetch('/api/user/profile', {
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        
+        if (response.ok) {
+          const fetchedProfile = await response.json()
+          console.log('ProfileLoader: Loaded profile from API:', { 
+            hasCompletedOnboarding: fetchedProfile.hasCompletedOnboarding 
           })
           
-          if (response.ok) {
-            const fetchedProfile = await response.json()
-            setProfile(fetchedProfile)
+          // Set the profile from API data
+          setProfile(fetchedProfile)
+          
+          // Generate plans if onboarding is complete and plans are missing/invalid
+          if (fetchedProfile.hasCompletedOnboarding) {
+            const hasValidWorkoutPlan = workoutPlan && 
+              Array.isArray(workoutPlan.multiWeekSchedules) && 
+              workoutPlan.multiWeekSchedules.length > 0
+              
+            const hasValidNutritionPlan = nutritionPlan && 
+              Array.isArray(nutritionPlan.multiWeekMealPlans) && 
+              nutritionPlan.multiWeekMealPlans.length > 0
             
-            // Generate plans immediately after setting profile
-            if (fetchedProfile.hasCompletedOnboarding) {
-              try {
-                await generatePlans(fetchedProfile)
-              } catch (planError) {
-                console.error("ProfileLoader: Error generating plans:", planError)
-              }
+            if (!hasValidWorkoutPlan || !hasValidNutritionPlan) {
+              console.log('ProfileLoader: Generating plans for completed profile')
+              await generatePlans(fetchedProfile)
             }
-          } else if (response.status === 401) {
-            return;
-          } else {
-            console.error("ProfileLoader: Failed to fetch profile", response.status, response.statusText)
-            // Don't generate fallback plans if we can't fetch profile - let components handle it
           }
+        } else if (response.status === 404) {
+          // Profile doesn't exist in DB, create from session data
+          console.log('ProfileLoader: Creating profile from session data')
+          const newProfile = {
+            id: session.user.id,
+            name: session.user.name || '',
+            email: session.user.email || '',
+            hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
+            // Add default values for required fields
+            age: 25,
+            height: 70,
+            currentWeight: 150,
+            targetWeight: 140,
+            goalType: 'general_fitness' as const,
+            experienceLevel: 'beginner' as const,
+            preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
+            sex: 'male' as const,
+          }
+          setProfile(newProfile)
+        } else if (response.status === 401) {
+          console.log('ProfileLoader: Unauthorized, skipping profile load')
+          return
         } else {
-          // Profile exists, check if we need to generate plans
+          console.error("ProfileLoader: Failed to fetch profile", response.status)
           
-          // Check if plans are actually valid, not just if they exist
-          const hasValidWorkoutPlan = workoutPlan && 
-            Array.isArray(workoutPlan.multiWeekSchedules) && 
-            workoutPlan.multiWeekSchedules.length > 0 &&
-            Array.isArray(workoutPlan.multiWeekSchedules[0]) &&
-            workoutPlan.multiWeekSchedules[0].length === 7
-            
-          const hasValidNutritionPlan = nutritionPlan && 
-            Array.isArray(nutritionPlan.multiWeekMealPlans) && 
-            nutritionPlan.multiWeekMealPlans.length > 0 &&
-            nutritionPlan.multiWeekMealPlans[0] &&
-            typeof nutritionPlan.multiWeekMealPlans[0] === 'object'
-          
-          if (profile.hasCompletedOnboarding && (!hasValidWorkoutPlan || !hasValidNutritionPlan)) {
-            try {
-              await generatePlans(profile)
-            } catch (planError) {
-              console.error("ProfileLoader: Error generating plans for existing profile:", planError)
+          // Fallback to session data if API fails
+          if (!profile) {
+            console.log('ProfileLoader: Using session fallback')
+            const fallbackProfile = {
+              id: session.user.id,
+              name: session.user.name || '',
+              email: session.user.email || '',
+              hasCompletedOnboarding: session.user.hasCompletedOnboarding || false,
+              age: 25,
+              height: 70,
+              currentWeight: 150,
+              targetWeight: 140,
+              goalType: 'general_fitness' as const,
+              experienceLevel: 'beginner' as const,
+              preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
+              sex: 'male' as const,
             }
+            setProfile(fallbackProfile)
           }
         }
       } catch (error) {
-        console.error("ProfileLoader: Error loading profile or generating plans:", error)
-        // Reset initialization flag on error to allow retry
-        setHasInitialized(false);
+        console.error("ProfileLoader: Error in initializeProfile:", error)
+        hasInitialized.current = false // Allow retry on error
       }
     }
 
-    // Only run once per session when hydrated
-    if (isHydrated && !hasInitialized && status !== 'loading') {
-      const timeoutId = setTimeout(() => {
-        loadProfileAndGeneratePlans()
-      }, 100)
+    // Use a small delay to prevent race conditions
+    const timeoutId = setTimeout(initializeProfile, 50)
+    return () => clearTimeout(timeoutId)
+  }, [isHydrated, status, session, profile, setProfile, generatePlans, workoutPlan, nutritionPlan])
 
-      return () => clearTimeout(timeoutId)
-    }
-  }, [session, status, isHydrated, hasInitialized, profile, generatePlans, workoutPlan, nutritionPlan, setProfile]) // Complete dependencies
-
-  return null // This component doesn't render anything
+  return null
 }
 
 export function StoreProvider({ children }: StoreProviderProps) {

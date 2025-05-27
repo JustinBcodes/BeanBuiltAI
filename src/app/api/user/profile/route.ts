@@ -13,6 +13,8 @@ export async function GET() {
     const userFromDb = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        id: true,
+        email: true,
         name: true,
         age: true,
         sex: true,
@@ -31,9 +33,20 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Convert the DB format to match the Profile interface
     const userProfile = {
-      ...userFromDb,
-      currentWeight: userFromDb.weight,
+      id: userFromDb.id,
+      email: userFromDb.email || session.user.email || '',
+      name: userFromDb.name || '',
+      age: userFromDb.age || 25,
+      sex: userFromDb.sex || 'male',
+      height: userFromDb.height || 70,
+      currentWeight: userFromDb.weight || 150,
+      targetWeight: userFromDb.targetWeight || 140,
+      goalType: userFromDb.goalType || 'general_fitness',
+      experienceLevel: userFromDb.experienceLevel || 'beginner',
+      preferredWorkoutDays: userFromDb.preferredWorkoutDays || ['monday', 'wednesday', 'friday'],
+      hasCompletedOnboarding: userFromDb.hasCompletedOnboarding || false,
     };
 
     return NextResponse.json(userProfile)
@@ -75,16 +88,23 @@ export async function PUT(req: Request) {
       }
     })
 
-    return NextResponse.json({
-      name: updatedUser.name,
-      email: updatedUser.email,
-      height: updatedUser.height,
-      weight: updatedUser.weight,
-      goalType: updatedUser.goalType,
-      experienceLevel: updatedUser.experienceLevel,
-      targetWeight: updatedUser.targetWeight,
-      targetDate: updatedUser.targetDate
-    })
+    // Return in the same format as GET
+    const userProfile = {
+      id: updatedUser.id,
+      email: updatedUser.email || session.user.email || '',
+      name: updatedUser.name || '',
+      age: updatedUser.age || 25,
+      sex: updatedUser.sex || 'male',
+      height: updatedUser.height || 70,
+      currentWeight: updatedUser.weight || 150,
+      targetWeight: updatedUser.targetWeight || 140,
+      goalType: updatedUser.goalType || 'general_fitness',
+      experienceLevel: updatedUser.experienceLevel || 'beginner',
+      preferredWorkoutDays: updatedUser.preferredWorkoutDays || ['monday', 'wednesday', 'friday'],
+      hasCompletedOnboarding: updatedUser.hasCompletedOnboarding || false,
+    };
+
+    return NextResponse.json(userProfile)
   } catch (error) {
     console.error('Failed to update profile:', error)
     return NextResponse.json(

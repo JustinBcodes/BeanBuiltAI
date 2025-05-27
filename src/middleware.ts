@@ -8,64 +8,61 @@ export default async function middleware(request: NextRequestWithAuth) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding')
   const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard')
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
 
-  if (isAuthPage) {
-    if (isAuth) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-    return null
+  // Skip middleware for API routes
+  if (isApiRoute) {
+    return NextResponse.next()
   }
 
-  if (!isAuth) {
+  // If user is on auth pages and is already authenticated, redirect based on onboarding status
+  if (isAuthPage && isAuth) {
+    if (token.hasCompletedOnboarding) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    } else {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
+  }
+
+  // If user is not authenticated and trying to access protected routes
+  if (!isAuth && (isDashboardPage || isOnboardingPage)) {
     let from = request.nextUrl.pathname
     if (request.nextUrl.search) {
       from += request.nextUrl.search
     }
-
     return NextResponse.redirect(
       new URL(`/auth/signin?from=${encodeURIComponent(from)}`, request.url)
     )
   }
 
-  // Check if user has completed onboarding for dashboard pages
-  if (isDashboardPage && !isOnboardingPage) {
-    // Use token data first (faster), fallback to API if needed
-    if (token?.hasCompletedOnboarding === false) {
+  // If user is authenticated but hasn't completed onboarding
+  if (isAuth && !isOnboardingPage && !token.hasCompletedOnboarding) {
+    // Only redirect to onboarding if they're trying to access dashboard
+    if (isDashboardPage) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
-    
-    // If token doesn't have onboarding status, check via API
-    if (token?.hasCompletedOnboarding === undefined) {
-      try {
-        const response = await fetch(`${request.nextUrl.origin}/api/user/profile`, {
-          headers: {
-            cookie: request.headers.get('cookie') || '',
-          },
-        })
-
-        if (!response.ok) {
-          return NextResponse.redirect(new URL('/onboarding', request.url))
-        }
-
-        const profile = await response.json()
-        if (!profile || !profile.hasCompletedOnboarding) {
-          return NextResponse.redirect(new URL('/onboarding', request.url))
-        }
-      } catch (error) {
-        console.error('Middleware: Error checking profile:', error)
-        return NextResponse.redirect(new URL('/onboarding', request.url))
-      }
-    }
+    // Allow access to other pages like profile, etc.
+    return NextResponse.next()
   }
   
   // If user has completed onboarding but is on onboarding page, redirect to dashboard
-  if (isOnboardingPage && token?.hasCompletedOnboarding === true) {
+  if (isAuth && isOnboardingPage && token.hasCompletedOnboarding) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return null
+  // Allow all other requests to pass through
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*', '/onboarding/:path*'],
+  matcher: [
+    '/dashboard/:path*', 
+    '/auth/:path*', 
+    '/onboarding/:path*',
+    '/profile/:path*',
+    '/goals/:path*',
+    '/nutrition/:path*',
+    '/workouts/:path*',
+    '/progress/:path*'
+  ],
 } 

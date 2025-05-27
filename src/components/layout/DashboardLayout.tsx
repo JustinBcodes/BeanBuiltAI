@@ -31,7 +31,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
   const { data: session, status } = useSession()
   const { profile } = useStore()
 
@@ -39,33 +38,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsHydrated(true)
   }, [])
-
-  // Protected session redirect effects - only run when hydrated
-  useEffect(() => {
-    if (!isHydrated) return
-
-    if (status === 'unauthenticated') {
-      console.log('DashboardLayout: Unauthenticated, redirecting to login')
-      router.push('/auth/signin')
-    }
-  }, [isHydrated, status, router])
-
-  useEffect(() => {
-    if (!isHydrated) return
-
-    // Only redirect if authenticated, profile is loaded, onboarding is not complete,
-    // and we are not already on the onboarding page (to prevent loops if already there).
-    if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === false && !pathname.startsWith('/onboarding')) {
-      console.log('DashboardLayout: Onboarding incomplete, redirecting to onboarding')
-      router.push('/onboarding')
-    }
-    
-    // If user has completed onboarding but is on onboarding page, redirect to dashboard
-    if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === true && pathname.startsWith('/onboarding')) {
-      console.log('DashboardLayout: Onboarding complete, redirecting to dashboard')
-      router.push('/dashboard')
-    }
-  }, [isHydrated, status, profile, router, pathname])
 
   // Show loading state during hydration
   if (!isHydrated) {
@@ -77,8 +49,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Show loading state while checking auth or if profile is not yet loaded for authenticated users
-  if (status === 'loading' || (status === 'authenticated' && !profile)) {
+  // Show loading state while checking auth
+  if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -87,28 +59,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If unauthenticated, useEffect will redirect, render null or minimal loader.
+  // If unauthenticated, middleware will handle redirect - show loading message
   if (status === 'unauthenticated') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
          <p className="text-lg text-gray-700">Redirecting to login...</p>
       </div>
-    ); // Or a more sophisticated loading/redirecting message
+    )
   }
 
-  // If authenticated but onboarding not complete, useEffect will redirect.
-  // Render loading state until redirect happens or if already on onboarding page (which this layout wouldn't typically wrap).
+  // If authenticated but profile is not loaded, show loading (ProfileLoader will handle this)
+  if (status === 'authenticated' && !profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="ml-4 text-lg text-gray-700">Loading profile...</p>
+      </div>
+    )
+  }
+
+  // If authenticated but onboarding not complete, middleware will handle redirect
   if (status === 'authenticated' && profile && profile.hasCompletedOnboarding === false) {
-    // If we are somehow on a page that uses DashboardLayout but should be on onboarding
-    if (!pathname.startsWith('/onboarding')) {
-      return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50">
-          <p className="text-lg text-gray-700">Redirecting to onboarding...</p>
-        </div>
-      );
-    }
-    // If already on onboarding, this layout shouldn't be active, but as a fallback:
-    return <>{children}</>; 
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <p className="text-lg text-gray-700">Redirecting to onboarding...</p>
+      </div>
+    )
   }
   
   // If all checks pass (authenticated, profile loaded, onboarding complete), render the layout
@@ -200,24 +176,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="sticky top-0 z-10 flex h-16 flex-shrink-0 bg-white shadow">
             <button
               type="button"
-              className="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden"
+              className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary lg:hidden"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </button>
+            <div className="flex flex-1 justify-between px-4">
+              <div className="flex flex-1">
+                {/* Search or breadcrumbs could go here */}
+              </div>
+              <div className="ml-4 flex items-center md:ml-6">
+                {/* User menu would go here */}
+              </div>
+            </div>
           </div>
 
-          <main className="flex-1 py-6 overflow-y-auto">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.2 }}
-              >
+          <main className="flex-1">
+            <div className="py-6">
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
                 {children}
-              </motion.div>
+              </div>
             </div>
           </main>
         </div>
@@ -225,10 +203,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Fallback for any other state (should ideally not be reached if logic above is complete)
+  // Fallback - should never reach here with proper middleware
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <p className="text-lg text-gray-700">Something went wrong with the layout.</p>
+      <p className="text-lg text-gray-700">Loading...</p>
     </div>
-  );
+  )
 } 
