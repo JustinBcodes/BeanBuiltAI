@@ -20,15 +20,23 @@ function ProfileLoader() {
   const lastSessionId = useRef<string | null>(null)
   const lastOnboardingStatus = useRef<boolean | null>(null)
 
-  // Debug logging removed for production
-
-  // Hydration guard
+  // Enhanced hydration guard - critical for mobile and incognito browsers
   useEffect(() => {
-    setIsHydrated(true)
+    // Add a small delay to ensure proper hydration on slower devices
+    const timer = setTimeout(() => {
+      setIsHydrated(true)
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   // Reset initialization when session changes or onboarding status changes
   useEffect(() => {
+    // Don't process if session is still loading
+    if (status === 'loading') {
+      return
+    }
+
     const currentOnboardingStatus = session?.user?.hasCompletedOnboarding ?? false
     
     if (session?.user?.id && session.user.id !== lastSessionId.current) {
@@ -46,10 +54,11 @@ function ProfileLoader() {
       lastOnboardingStatus.current = currentOnboardingStatus
       hasInitialized.current = false
     }
-  }, [session?.user?.id, session?.user?.hasCompletedOnboarding])
+  }, [session?.user?.id, session?.user?.hasCompletedOnboarding, status])
 
   // Immediately create profile from session if authenticated and no profile exists
   useEffect(() => {
+    // Enhanced loading checks for mobile/incognito compatibility
     if (!isHydrated || status === 'loading' || hasInitialized.current) {
       return
     }
@@ -77,73 +86,58 @@ function ProfileLoader() {
       }
       console.log(`✅ StoreProvider: Profile created with onboarding status: ${newProfile.hasCompletedOnboarding}`)
       setProfile(newProfile)
-      
-      // Async fetch from API to update with latest data
+
+      // Enhanced async profile fetching with better error handling
       const fetchLatestProfile = async () => {
         try {
-          console.log(`🔄 StoreProvider: Fetching latest profile from API`)
+          console.log(`🔄 StoreProvider: Fetching latest profile data for user ${session.user.id}`)
           const response = await fetch('/api/user/profile', {
-            credentials: 'include',
+            method: 'GET',
             headers: {
               'Cache-Control': 'no-cache, no-store, must-revalidate',
               'Pragma': 'no-cache',
-              'Expires': '0'
-            }
+              'Expires': '0',
+            },
           })
-          
-          if (response.ok) {
-            const fetchedProfile = await response.json()
-            console.log(`✅ StoreProvider: Updated profile from API with onboarding status: ${fetchedProfile.hasCompletedOnboarding}`)
-            console.log(`🔍 StoreProvider: Profile details:`, {
-              goalType: fetchedProfile.goalType,
-              experienceLevel: fetchedProfile.experienceLevel,
-              currentWeight: fetchedProfile.currentWeight,
-              hasCompletedOnboarding: fetchedProfile.hasCompletedOnboarding
-            });
+
+          if (!response.ok) {
+            throw new Error(`Profile fetch failed: ${response.status}`)
+          }
+
+          const fetchedProfile = await response.json()
+          console.log(`✅ StoreProvider: Latest profile fetched`, {
+            hasCompletedOnboarding: fetchedProfile.hasCompletedOnboarding,
+            profileId: fetchedProfile.id
+          })
+
+          // Update profile with latest data
+          setProfile(fetchedProfile)
+
+          // Check if we need to generate plans
+          const hasValidWorkoutPlan = workoutPlan && 
+                                      Array.isArray(workoutPlan.multiWeekSchedules) && 
+                                      workoutPlan.multiWeekSchedules.length > 0
+
+          const hasValidNutritionPlan = nutritionPlan && 
+                                        Array.isArray(nutritionPlan.multiWeekMealPlans) && 
+                                        nutritionPlan.multiWeekMealPlans.length > 0
+
+          // Only generate plans if user has completed onboarding and plans are missing
+          if (fetchedProfile.hasCompletedOnboarding && (!hasValidWorkoutPlan || !hasValidNutritionPlan)) {
+            console.log(`🔄 StoreProvider: Generating missing plans for completed onboarding user`)
+            await generatePlans(fetchedProfile)
             
-            setProfile(fetchedProfile)
-            
-            // Generate plans if onboarding is complete and plans are missing/invalid
-            if (fetchedProfile.hasCompletedOnboarding) {
-              console.log(`🔍 StoreProvider: Checking existing plans...`);
-              
-              const hasValidWorkoutPlan = workoutPlan && 
-                Array.isArray(workoutPlan.multiWeekSchedules) && 
-                workoutPlan.multiWeekSchedules.length > 0
-                
-              const hasValidNutritionPlan = nutritionPlan && 
-                Array.isArray(nutritionPlan.multiWeekMealPlans) && 
-                nutritionPlan.multiWeekMealPlans.length > 0
-              
-              console.log(`🔍 StoreProvider: Plan validation:`, {
-                hasValidWorkoutPlan,
-                hasValidNutritionPlan,
-                workoutPlanExists: !!workoutPlan,
-                nutritionPlanExists: !!nutritionPlan
-              });
-              
-              if (!hasValidWorkoutPlan || !hasValidNutritionPlan) {
-                console.log(`🔄 StoreProvider: Generating missing plans`)
-                await generatePlans(fetchedProfile)
-                
-                // Verify plans were generated
-                const finalWorkoutPlan = useStore.getState().workoutPlan;
-                const finalNutritionPlan = useStore.getState().nutritionPlan;
-                
-                console.log(`✅ StoreProvider: Plan generation completed:`, {
-                  workoutPlanGenerated: !!(finalWorkoutPlan && Array.isArray(finalWorkoutPlan.multiWeekSchedules)),
-                  nutritionPlanGenerated: !!(finalNutritionPlan && Array.isArray(finalNutritionPlan.multiWeekMealPlans))
-                });
-              } else {
-                console.log(`✅ StoreProvider: Valid plans already exist, skipping generation`);
-              }
-            }
-          } else {
-            console.error(`🚨 StoreProvider: Failed to fetch profile - ${response.status}`)
+            // Verify plans were generated
+            const finalWorkoutPlan = useStore.getState().workoutPlan;
+            const finalNutritionPlan = useStore.getState().nutritionPlan;
+            console.log(`✅ StoreProvider: Plan generation completed`, {
+              workoutPlanValid: !!(finalWorkoutPlan && Array.isArray(finalWorkoutPlan.multiWeekSchedules)),
+              nutritionPlanValid: !!(finalNutritionPlan && Array.isArray(finalNutritionPlan.multiWeekMealPlans))
+            })
           }
         } catch (error) {
           console.error("🚨 StoreProvider: Error fetching latest profile:", error)
-          // Keep the session-based profile if API fails
+          // Keep the session-based profile if API fails - important for offline/poor connectivity
         }
       }
       
@@ -152,9 +146,14 @@ function ProfileLoader() {
     }
   }, [isHydrated, status, session, profile, setProfile, generatePlans, workoutPlan, nutritionPlan])
 
-  // Show loading until we have either a profile or confirmed unauthenticated status
-  if (status === 'loading' || (status === 'authenticated' && !profile)) {
-    console.log(`🔄 StoreProvider: Showing loading - status: ${status}, profile: ${!!profile}`)
+  // Enhanced loading state handling for mobile/incognito browsers
+  if (status === 'loading') {
+    console.log(`🔄 StoreProvider: Session loading...`)
+    return <LoadingSkeleton message="Authenticating..." />
+  }
+
+  if (status === 'authenticated' && !profile) {
+    console.log(`🔄 StoreProvider: Authenticated but no profile - status: ${status}, profile: ${!!profile}`)
     return <LoadingSkeleton message="Loading your profile..." />
   }
 
@@ -162,7 +161,7 @@ function ProfileLoader() {
   return null
 }
 
-export function StoreProvider({ children }: StoreProviderProps) {
+export default function StoreProvider({ children }: StoreProviderProps) {
   return (
     <>
       <ProfileLoader />

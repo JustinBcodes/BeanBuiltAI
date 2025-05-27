@@ -4,7 +4,16 @@ import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export default async function middleware(request: NextRequestWithAuth) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  const token = await getToken({ 
+    req: request, 
+    secret: process.env.NEXTAUTH_SECRET,
+    // Enhanced token configuration for mobile/incognito compatibility
+    secureCookie: process.env.NODE_ENV === 'production',
+    cookieName: process.env.NODE_ENV === 'production' 
+      ? '__Secure-next-auth.session-token'
+      : 'next-auth.session-token'
+  })
+  
   const url = request.nextUrl.clone()
   
   console.log(`🔄 Middleware: ${url.pathname} | Token: ${!!token} | Onboarding: ${token?.hasCompletedOnboarding}`)
@@ -23,6 +32,8 @@ export default async function middleware(request: NextRequestWithAuth) {
   if (!token && !isPublicRoute) {
     console.log(`🚀 Not authenticated, redirecting ${url.pathname} → /auth/signin`)
     url.pathname = '/auth/signin'
+    // Add the original path as a query parameter for post-login redirect
+    url.searchParams.set('from', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 
@@ -41,6 +52,8 @@ export default async function middleware(request: NextRequestWithAuth) {
       console.log(`🚀 Auth page without completed onboarding → /onboarding`)
       url.pathname = '/onboarding'
     }
+    // Clear any redirect parameters
+    url.searchParams.delete('from')
     return NextResponse.redirect(url)
   }
 
@@ -58,9 +71,18 @@ export default async function middleware(request: NextRequestWithAuth) {
     return NextResponse.redirect(url)
   }
 
-  // Let it through
+  // Enhanced response headers for mobile/incognito compatibility
+  const response = NextResponse.next()
+  
+  // Add security headers for production
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  }
+
   console.log(`✓ Allowing access to ${url.pathname}`)
-  return NextResponse.next()
+  return response
 }
 
 export const config = {

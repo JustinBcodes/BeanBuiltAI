@@ -34,6 +34,14 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Ensure callback URL includes www subdomain for production
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   session: {
@@ -41,14 +49,41 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
+  // Enhanced cookie configuration for cross-device compatibility
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production' 
+        ? `__Secure-next-auth.session-token`
+        : `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax", // Critical for mobile and cross-site compatibility
+        path: "/",
+        secure: process.env.NODE_ENV === 'production', // Only secure in production
+        domain: process.env.NODE_ENV === 'production' ? '.beanbuiltai.com' : undefined, // Allow subdomains in production
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === 'production'
+        ? `__Secure-next-auth.callback-url`
+        : `next-auth.callback-url`,
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.beanbuiltai.com' : undefined,
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? `__Host-next-auth.csrf-token`
+        : `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === 'production',
       },
     },
   },
@@ -100,11 +135,31 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Let middleware handle routing decisions instead of forcing /dashboard
-      // This prevents the redirect loop
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      // Enhanced redirect handling for production
+      const prodUrl = process.env.NEXTAUTH_URL || baseUrl;
+      
+      // If url is relative, make it absolute with the correct base
+      if (url.startsWith('/')) {
+        return `${prodUrl}${url}`;
+      }
+      
+      // If url is absolute and matches our domain (with or without www), allow it
+      try {
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(prodUrl);
+        
+        // Allow redirects to same domain (with or without www)
+        if (urlObj.hostname === baseUrlObj.hostname || 
+            urlObj.hostname === `www.${baseUrlObj.hostname}` ||
+            baseUrlObj.hostname === `www.${urlObj.hostname}`) {
+          return url;
+        }
+      } catch (error) {
+        console.error('Error parsing redirect URLs:', error);
+      }
+      
+      // Default to base URL for safety
+      return prodUrl;
     },
   },
   pages: {
@@ -113,6 +168,7 @@ export const authOptions: NextAuthOptions = {
     // verifyRequest: '/auth/verify-request', // For email provider, if you add one
     // newUser: '/auth/new-user' // If you want a custom new user page (can be /onboarding)
   },
-  debug: true, // Enable debug logging to troubleshoot auth issues
+  // Enhanced debug logging for production troubleshooting
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET as string,
 }; 

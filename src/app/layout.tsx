@@ -1,7 +1,7 @@
 import NextAuthSessionProvider from '@/components/providers/SessionProvider'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { StoreProvider } from '@/components/providers/StoreProvider'
+import StoreProvider from '@/components/providers/StoreProvider'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
