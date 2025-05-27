@@ -3,6 +3,7 @@ import { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './prisma';
+import NextAuth from "next-auth";
 
 // Define our custom user type
 interface CustomUser {
@@ -32,15 +33,8 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-        },
-      },
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   session: {
@@ -50,14 +44,12 @@ export const authOptions: NextAuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
-        ? "__Secure-next-auth.session-token" 
-        : "next-auth.session-token",
+      name: `__Secure-next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
       },
     },
   },
@@ -70,9 +62,9 @@ export const authOptions: NextAuthOptions = {
       // Potentially link account or perform other actions here if needed on first sign-in
       return true;
     },
-    async jwt({ token, user, account, trigger, session: clientSession }) {
-      // Initial sign-in
-      if (user && user.id) { // user object is available on initial sign in
+    async jwt({ token, user, trigger, session: clientSession }) {
+      // Initial sign-in - fetch hasCompletedOnboarding from database
+      if (user && user.id) {
         token.id = user.id;
         try {
           const dbUser = await prisma.user.findUnique({
@@ -86,12 +78,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // If account is present (e.g., Google OAuth), store access token if needed
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
-      }
-      
-      // Handle manual updates to the session (e.g., after onboarding completion)
+      // Handle session updates (e.g., after onboarding completion)
       if (trigger === "update" && token.id) {
         try {
           const dbUser = await prisma.user.findUnique({
@@ -109,13 +96,8 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Send properties to the client, like user id and onboarding status
-      if (session.user) {
-        if (token.id) session.user.id = token.id;
-        if (token.hasCompletedOnboarding !== undefined) {
-          session.user.hasCompletedOnboarding = token.hasCompletedOnboarding;
-        }
-      }
+      if (token?.id) session.user.id = token.id;
+      session.user.hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
       return session;
     },
     async redirect({ url, baseUrl }) {
