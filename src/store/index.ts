@@ -235,9 +235,20 @@ export const useStore = create<Store>()(
 
       setProfile: (data) => set({ profile: data }),
       setWorkoutPlan: (plan) => {
+        console.log("🏋️ WORKOUT PLAN GENERATED:", {
+          planExists: !!plan,
+          planName: plan?.planName,
+          multiWeekSchedulesExists: !!plan?.multiWeekSchedules,
+          multiWeekSchedulesIsArray: Array.isArray(plan?.multiWeekSchedules),
+          multiWeekSchedulesLength: plan?.multiWeekSchedules?.length,
+          firstWeekExists: !!plan?.multiWeekSchedules?.[0],
+          firstWeekIsArray: Array.isArray(plan?.multiWeekSchedules?.[0]),
+          firstWeekLength: Array.isArray(plan?.multiWeekSchedules?.[0]) ? plan.multiWeekSchedules[0].length : 'not array'
+        });
+
         // Basic validation
         if (!plan) {
-          console.error("Null workout plan provided to setWorkoutPlan");
+          console.error("❌ Null workout plan provided to setWorkoutPlan");
           return;
         }
         
@@ -245,6 +256,7 @@ export const useStore = create<Store>()(
         
         // Handle old format conversion only if needed
         if (!Array.isArray(plan.multiWeekSchedules) && Array.isArray((plan as any).weeklySchedule)) {
+          console.log("🔄 Converting old workout plan format to new format");
           validPlan = {
             ...plan,
             multiWeekSchedules: [(plan as any).weeklySchedule],
@@ -254,12 +266,23 @@ export const useStore = create<Store>()(
         
         // Only regenerate if the plan is completely invalid
         if (!Array.isArray(validPlan.multiWeekSchedules) || validPlan.multiWeekSchedules.length === 0) {
-          console.error("Invalid workout plan structure, regenerating");
+          console.error("❌ Invalid workout plan structure, regenerating");
           validPlan = createStaticWorkoutPlan();
+          console.log("✅ Emergency workout plan created:", {
+            planName: validPlan.planName,
+            weeksCount: validPlan.multiWeekSchedules?.length,
+            firstWeekDaysCount: validPlan.multiWeekSchedules?.[0]?.length
+          });
         }
         
         // Set the current viewed week index to match the plan's current week
         const newCurrentWeekIndex = validPlan.currentWeekIndex || 0;
+        
+        console.log("✅ Setting workout plan in Zustand:", {
+          planName: validPlan.planName,
+          currentWeekIndex: newCurrentWeekIndex,
+          totalWeeks: validPlan.multiWeekSchedules?.length
+        });
         
         set({ 
           workoutPlan: validPlan,
@@ -270,6 +293,16 @@ export const useStore = create<Store>()(
         get().initializeProgressFromPlans(validPlan, get().nutritionPlan);
       },
       setNutritionPlan: (plan) => {
+        console.log("🍎 NUTRITION PLAN GENERATED:", {
+          planExists: !!plan,
+          planName: plan?.planName,
+          multiWeekMealPlansExists: !!plan?.multiWeekMealPlans,
+          multiWeekMealPlansIsArray: Array.isArray(plan?.multiWeekMealPlans),
+          multiWeekMealPlansLength: plan?.multiWeekMealPlans?.length,
+          firstWeekExists: !!plan?.multiWeekMealPlans?.[0],
+          dailyTargets: plan?.dailyTargets
+        });
+
         // ✅ Plans are static.
         // 🤖 AI is only used to suggest substitutions or macro tweaks after plan generation.
         // ❌ AI does not create or replace full plans.
@@ -281,7 +314,7 @@ export const useStore = create<Store>()(
           // Check if plan is valid overall (has multiWeekMealPlans or older weeklyMealPlan format)
           if (!plan || 
               (!Array.isArray(plan.multiWeekMealPlans) && !(plan as any).weeklyMealPlan)) {
-            console.error("Invalid nutrition plan format detected in setNutritionPlan. Regenerating a valid plan.");
+            console.error("❌ Invalid nutrition plan format detected in setNutritionPlan. Regenerating a valid plan.");
             const currentProfile = get().profile;
             const prefs = currentProfile ? { 
               goalType: currentProfile.goalType,
@@ -291,10 +324,15 @@ export const useStore = create<Store>()(
               sex: currentProfile.sex,
             } : undefined;
             validPlan = createStaticNutritionPlan(prefs);
+            console.log("✅ Emergency nutrition plan created:", {
+              planName: validPlan.planName,
+              weeksCount: validPlan.multiWeekMealPlans?.length
+            });
           }
           
           // Handle transition from old plan format (weeklyMealPlan) to new format (multiWeekMealPlans)
           if (validPlan && !Array.isArray(validPlan.multiWeekMealPlans) && (validPlan as any).weeklyMealPlan) {
+            console.log("🔄 Converting old nutrition plan format to new format");
             validPlan = {
               ...validPlan,
               multiWeekMealPlans: [(validPlan as any).weeklyMealPlan],
@@ -304,6 +342,7 @@ export const useStore = create<Store>()(
           
           // Ensure multiWeekMealPlans is always an array
           if (validPlan && !Array.isArray(validPlan.multiWeekMealPlans)) {
+            console.warn("⚠️ multiWeekMealPlans is not an array, fixing");
             validPlan = {
               ...validPlan,
               multiWeekMealPlans: [],
@@ -313,9 +352,9 @@ export const useStore = create<Store>()(
           // Ensure each week in multiWeekMealPlans is a valid structure
           if (validPlan && Array.isArray(validPlan.multiWeekMealPlans)) {
             const requiredDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            const validWeeks = validPlan.multiWeekMealPlans.map(week => {
+            const validWeeks = validPlan.multiWeekMealPlans.map((week, weekIndex) => {
               if (!week || typeof week !== 'object' || week === null) {
-                console.error("Invalid week format in nutrition plan (null or not an object)", week);
+                console.error(`❌ Invalid week ${weekIndex} format in nutrition plan (null or not an object)`, week);
                 // Generate a default week structure
                 const currentProfile = get().profile;
                 const prefs = currentProfile ? { 
@@ -331,7 +370,7 @@ export const useStore = create<Store>()(
                   typeof (week as any)[day] === 'object' && 
                   Array.isArray((week as any)[day].meals)
               )) {
-                console.error("Invalid week format in nutrition plan (missing days or invalid day structure)", week);
+                console.error(`❌ Invalid week ${weekIndex} format in nutrition plan (missing days or invalid day structure)`, week);
                 // Generate a default week structure
                 const currentProfile = get().profile;
                 const prefs = currentProfile ? { 
@@ -345,13 +384,13 @@ export const useStore = create<Store>()(
               let needsReplacement = false;
               requiredDays.forEach(day => {
                 if (!(week as any)[day] || !Array.isArray((week as any)[day].meals) || (week as any)[day].meals.length === 0) {
-                  console.error(`Day ${day} has no meals in nutrition plan`, (week as any)[day]);
+                  console.error(`❌ Day ${day} has no meals in nutrition plan week ${weekIndex}`, (week as any)[day]);
                   needsReplacement = true;
                 }
               });
               
               if (needsReplacement) {
-                console.error("Week needs replacement due to invalid day structure");
+                console.error(`❌ Week ${weekIndex} needs replacement due to invalid day structure`);
                 const currentProfile = get().profile;
                 const prefs = currentProfile ? { 
                   goalType: currentProfile.goalType,
@@ -371,13 +410,14 @@ export const useStore = create<Store>()(
           
           // Ensure at least one week exists
           if (validPlan && (!Array.isArray(validPlan.multiWeekMealPlans) || validPlan.multiWeekMealPlans.length === 0)) {
-            console.error("No weeks in multiWeekMealPlans after validation");
+            console.error("❌ No weeks in multiWeekMealPlans after validation");
             const currentProfile = get().profile;
             const newPlan = createStaticNutritionPlan(currentProfile ? {
               goalType: currentProfile.goalType,
               currentWeight: currentProfile.currentWeight,
             } : undefined);
             validPlan = newPlan;
+            console.log("✅ Created new nutrition plan with weeks:", validPlan.multiWeekMealPlans?.length);
           }
           
           // Validate currentWeekIndex
@@ -386,6 +426,7 @@ export const useStore = create<Store>()(
               validPlan.currentWeekIndex < 0 || 
               (Array.isArray(validPlan.multiWeekMealPlans) && validPlan.currentWeekIndex >= validPlan.multiWeekMealPlans.length)
           )) {
+            console.warn("⚠️ Invalid currentWeekIndex, setting to 0");
             validPlan = {
               ...validPlan,
               currentWeekIndex: 0
@@ -396,18 +437,26 @@ export const useStore = create<Store>()(
           if (!validPlan || 
               !Array.isArray(validPlan.multiWeekMealPlans) || 
               validPlan.multiWeekMealPlans.length === 0) {
-            console.error("Final validation failed, using emergency plan");
+            console.error("❌ Final validation failed, using emergency plan");
             validPlan = createStaticNutritionPlan(); // Use default static plan as last resort
           }
+          
+          console.log("✅ Setting nutrition plan in Zustand:", {
+            planName: validPlan.planName,
+            currentWeekIndex: validPlan.currentWeekIndex,
+            totalWeeks: validPlan.multiWeekMealPlans?.length,
+            dailyTargets: validPlan.dailyTargets
+          });
           
           set({ nutritionPlan: validPlan });
           
           // Initialize progress with the validated plan
           get().initializeProgressFromPlans(get().workoutPlan, validPlan);
         } catch (error) {
-          console.error("Error in setNutritionPlan:", error);
+          console.error("❌ Error in setNutritionPlan:", error);
           // Final emergency fallback
           const emergencyPlan = createStaticNutritionPlan();
+          console.log("🚨 Using emergency nutrition plan:", emergencyPlan.planName);
           set({ nutritionPlan: emergencyPlan });
           get().initializeProgressFromPlans(get().workoutPlan, emergencyPlan);
         }
@@ -425,53 +474,65 @@ export const useStore = create<Store>()(
       // 🤖 AI is only used to suggest substitutions or macro tweaks after plan generation
       // ❌ AI does not create or replace full plans
       generatePlans: async (profileData, preferences) => {
+        console.log("🚀 GENERATE PLANS CALLED:", {
+          profileProvided: !!profileData,
+          preferencesProvided: !!preferences,
+          currentProfile: !!get().profile,
+          isGenerating: get().isGeneratingPlans
+        });
+
         // Prevent concurrent calls that could corrupt state
         if (get().isGeneratingPlans) {
+          console.warn("⚠️ Plan generation already in progress, skipping");
           return;
         }
-        
+
         set({ isGeneratingPlans: true });
-        
+
         try {
-          const currentProfile = profileData || get().profile;
-          
-          // Create fallback profile data if none exists
-          let effectiveProfile = currentProfile;
-          if (!currentProfile) {
-            effectiveProfile = {
-              id: "default",
-              name: "Default User",
-              email: "",
-              age: 25,
-              sex: "male" as const,
-              height: 175,
-              currentWeight: 70,
-              targetWeight: 65,
-              goalType: "general_fitness" as const,
-              experienceLevel: "beginner" as const,
-              preferredWorkoutDays: ["monday", "wednesday", "friday"],
-              hasCompletedOnboarding: true
-            };
+          const currentProfile = get().profile;
+          const effectiveProfile = profileData || currentProfile;
+
+          console.log("🔄 Using profile for plan generation:", {
+            hasProfile: !!effectiveProfile,
+            hasCompletedOnboarding: effectiveProfile?.hasCompletedOnboarding,
+            goalType: effectiveProfile?.goalType,
+            experienceLevel: effectiveProfile?.experienceLevel
+          });
+
+          if (!effectiveProfile) {
+            console.error("❌ No profile available for plan generation");
+            throw new Error("Profile is required for plan generation");
           }
 
-          // Ensure profile has required fields with safe defaults
+          // Create a safe profile with defaults for missing fields
           const safeProfile = {
-            ...effectiveProfile,
-            goalType: effectiveProfile?.goalType || 'general_fitness',
-            experienceLevel: effectiveProfile?.experienceLevel || 'beginner',
-            currentWeight: effectiveProfile?.currentWeight || 70,
-            height: effectiveProfile?.height || 175,
-            age: effectiveProfile?.age || 25,
-            sex: effectiveProfile?.sex || 'male',
-            preferredWorkoutDays: effectiveProfile?.preferredWorkoutDays || ["monday", "wednesday", "friday"]
+            id: effectiveProfile.id || '',
+            name: effectiveProfile.name || '',
+            email: effectiveProfile.email || '',
+            age: effectiveProfile.age || 25,
+            height: effectiveProfile.height || 70,
+            currentWeight: effectiveProfile.currentWeight || 150,
+            targetWeight: effectiveProfile.targetWeight || 140,
+            goalType: effectiveProfile.goalType || 'general_fitness',
+            experienceLevel: effectiveProfile.experienceLevel || 'beginner',
+            preferredWorkoutDays: effectiveProfile.preferredWorkoutDays || ['monday', 'wednesday', 'friday'],
+            sex: effectiveProfile.sex || 'male',
+            hasCompletedOnboarding: effectiveProfile.hasCompletedOnboarding || false,
           };
+
+          console.log("✅ Safe profile created for plan generation:", {
+            goalType: safeProfile.goalType,
+            experienceLevel: safeProfile.experienceLevel,
+            preferredWorkoutDays: safeProfile.preferredWorkoutDays?.length
+          });
 
           const workoutPrefs = {
             workoutSplit: preferences?.workout?.workoutSplit || 
                           (safeProfile.experienceLevel === 'beginner' ? 'FullBody' : 'PPL'),
             goalType: safeProfile.goalType,
             experienceLevel: safeProfile.experienceLevel,
-            preferredWorkoutDays: safeProfile.preferredWorkoutDays
+            preferredDays: safeProfile.preferredWorkoutDays
           };
 
           const nutritionPrefs = {
@@ -482,10 +543,27 @@ export const useStore = create<Store>()(
             sex: safeProfile.sex,
           };
 
+          console.log("🔄 Generating plans with preferences:", {
+            workoutPrefs,
+            nutritionPrefs
+          });
 
           // Generate plans synchronously from static data - no API calls
           const newNutritionPlanData = createStaticNutritionPlan(nutritionPrefs);
           const newWorkoutPlanData = createStaticWorkoutPlan(workoutPrefs);
+
+          console.log("✅ Static plans generated:", {
+            workoutPlan: {
+              exists: !!newWorkoutPlanData,
+              planName: newWorkoutPlanData?.planName,
+              weeksCount: newWorkoutPlanData?.multiWeekSchedules?.length
+            },
+            nutritionPlan: {
+              exists: !!newNutritionPlanData,
+              planName: newNutritionPlanData?.planName,
+              weeksCount: newNutritionPlanData?.multiWeekMealPlans?.length
+            }
+          });
 
           // Ensure plans are in the correct multi-week structure
           let finalNutritionPlan: NutritionPlan;
@@ -497,8 +575,9 @@ export const useStore = create<Store>()(
               ...newNutritionPlanData,
               currentWeekIndex: 0,
             };
+            console.log("✅ Nutrition plan structure validated");
           } else {
-            console.error("Invalid nutrition plan structure, using emergency fallback");
+            console.error("❌ Invalid nutrition plan structure, using emergency fallback");
             finalNutritionPlan = createStaticNutritionPlan(); // Emergency fallback
           }
 
@@ -508,36 +587,49 @@ export const useStore = create<Store>()(
               ...newWorkoutPlanData,
               currentWeekIndex: 0,
             };
+            console.log("✅ Workout plan structure validated");
           } else {
-            console.error("Invalid workout plan structure, using emergency fallback");
+            console.error("❌ Invalid workout plan structure, using emergency fallback");
             finalWorkoutPlan = createStaticWorkoutPlan(); // Emergency fallback
           }
+          
+          console.log("🔄 Setting plans using validated setters...");
           
           // Set the plans using the validated setters
           get().setWorkoutPlan(finalWorkoutPlan);
           get().setNutritionPlan(finalNutritionPlan);
           
+          console.log("✅ Plans set successfully in Zustand store");
+          
           // If we created a default profile, set it too
           if (!currentProfile && effectiveProfile) {
+            console.log("🔄 Setting profile in store");
             set({ profile: effectiveProfile });
           }
           
         } catch (error) {
-          console.error("Error generating plans:", error);
+          console.error("❌ Error generating plans:", error);
           
           // Emergency fallback - create minimal valid plans
           try {
+            console.log("🚨 Creating emergency fallback plans...");
             const emergencyWorkout = createStaticWorkoutPlan();
             const emergencyNutrition = createStaticNutritionPlan();
+            
+            console.log("✅ Emergency plans created:", {
+              workout: emergencyWorkout.planName,
+              nutrition: emergencyNutrition.planName
+            });
             
             get().setWorkoutPlan(emergencyWorkout);
             get().setNutritionPlan(emergencyNutrition);
             
           } catch (fallbackError) {
-            console.error("Emergency fallback failed:", fallbackError);
+            console.error("🚨 Emergency fallback failed:", fallbackError);
           }
         } finally {
           set({ isGeneratingPlans: false });
+          console.log("✅ Plan generation completed");
         }
       },
 

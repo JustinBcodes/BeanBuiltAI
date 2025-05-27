@@ -29,6 +29,7 @@ import {
   X
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { toast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { tips } from '@/lib/tips'
@@ -42,6 +43,7 @@ const kgToLbs = (kg: number): number => {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { data: session, status: sessionStatus } = useSession()
   const { 
     profile, 
@@ -76,15 +78,33 @@ export default function DashboardPage() {
   }, [])
 
   const handleGeneratePlans = async () => {
+    console.log("🚀 Dashboard: Generate plans button clicked");
+    console.log("🔍 Current state:", {
+      hasProfile: !!profile,
+      profileOnboarding: profile?.hasCompletedOnboarding,
+      hasWorkoutPlan: !!workoutPlan,
+      hasNutritionPlan: !!nutritionPlan
+    });
+    
     setIsLoadingPlans(true);
     try {
       await generatePlans();
+      
+      // Verify plans were generated
+      const finalWorkoutPlan = useStore.getState().workoutPlan;
+      const finalNutritionPlan = useStore.getState().nutritionPlan;
+      
+      console.log("✅ Dashboard: Plans generated:", {
+        workoutPlanGenerated: !!(finalWorkoutPlan && Array.isArray(finalWorkoutPlan.multiWeekSchedules)),
+        nutritionPlanGenerated: !!(finalNutritionPlan && Array.isArray(finalNutritionPlan.multiWeekMealPlans))
+      });
+      
       toast({
         title: "Plans Refreshed",
         description: "Your workout and nutrition plans have been updated.",
       });
     } catch (error) {
-      console.error("Failed to generate plans:", error);
+      console.error("❌ Dashboard: Failed to generate plans:", error);
       toast({
         title: "Error Generating Plans",
         description: error instanceof Error ? error.message : "Could not refresh your plans. Please try again.",
@@ -253,6 +273,27 @@ export default function DashboardPage() {
   const nutritionPlanValid = nutritionPlan && isValidNutritionPlan(nutritionPlan);
   const workoutProgressValid = workoutProgress && Array.isArray(workoutProgress.weeklySchedule);
   const nutritionProgressValid = nutritionProgress && Array.isArray(nutritionProgress.weeklyMealProgress);
+
+  // Validate plans and show appropriate UI
+  const hasValidWorkoutPlan = workoutPlan && 
+                              Array.isArray(workoutPlan.multiWeekSchedules) && 
+                              workoutPlan.multiWeekSchedules.length > 0
+
+  const hasValidNutritionPlan = nutritionPlan && 
+                                Array.isArray(nutritionPlan.multiWeekMealPlans) && 
+                                nutritionPlan.multiWeekMealPlans.length > 0
+
+  console.log("🔍 Dashboard validation state:", {
+    sessionStatus,
+    hasProfile: !!profile,
+    profileOnboarding: profile?.hasCompletedOnboarding,
+    hasValidWorkoutPlan,
+    hasValidNutritionPlan,
+    workoutPlanExists: !!workoutPlan,
+    nutritionPlanExists: !!nutritionPlan,
+    workoutProgressExists: !!workoutProgress,
+    nutritionProgressExists: !!nutritionProgress
+  });
 
   // --- UI ---
   if (loading) {
@@ -475,73 +516,78 @@ export default function DashboardPage() {
         )}
 
         {/* Workout Plan Card */}
-        {workoutPlan && isValidWorkoutPlan(workoutPlan) ? (
-          <div>
-          <Card className="rounded-2xl shadow-md h-full">
-            <CardHeader>
-              <CardTitle className="text-xl text-foreground flex items-center">
-                <Dumbbell className="w-5 h-5 mr-2 text-primary" />
-                Today&rsquo;s Workout
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {todaysWorkout ? (
-                  todaysWorkout.isRestDay ? (
-                    <div className="flex flex-col items-center justify-center py-4">
-                      <p className="text-muted-foreground mb-2">Rest Day</p>
-                      <p className="text-sm">Take time to recover and recharge!</p>
-                    </div>
-                  ) : todaysWorkout.workoutDetails && todaysWorkout.workoutDetails.completed ? (
-                    <div className="flex flex-col">
-                      <div className="flex items-center text-primary mb-2">
-                        <CheckCircle2 className="w-5 h-5 mr-2" />
-                        <span className="font-medium">Workout Completed</span>
+        {hasValidWorkoutPlan ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="rounded-2xl shadow-md h-full">
+              <CardHeader>
+                <CardTitle className="text-xl text-foreground flex items-center gap-2">
+                  <Dumbbell className="h-5 w-5 text-primary" />
+                  Today&apos;s Workout
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {todaysWorkout ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                                                 <h3 className="font-semibold text-lg text-foreground">{todaysWorkout.workoutDetails?.workoutName}</h3>
+                         <span className={`px-2 py-1 rounded text-xs font-medium ${
+                           todaysWorkout.workoutDetails?.completed 
+                             ? "bg-green-100 text-green-800" 
+                             : "bg-gray-100 text-gray-800"
+                         }`}>
+                           {todaysWorkout.workoutDetails?.completed ? "Completed" : "Pending"}
+                         </span>
                       </div>
-                      <p className="text-sm mb-4">{todaysWorkout.workoutDetails?.workoutName || 'Today&rsquo;s workout'}</p>
-                      <Button asChild variant="outline" className="w-full">
-                        <Link href="/workouts">
-                          View Details <ChevronRight className="ml-1 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          <strong>Warm-up:</strong> {todaysWorkout.workoutDetails?.warmUp}
+                        </p>
+                        <div className="space-y-1">
+                                                     <p className="text-sm font-medium text-foreground">Exercises:</p>
+                          {todaysWorkout.workoutDetails?.exercises?.slice(0, 3).map((exercise: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">{exercise.name}</span>
+                              <span className="text-muted-foreground">{exercise.sets} × {exercise.reps}</span>
+                            </div>
+                          ))}
+                          {(todaysWorkout.workoutDetails?.exercises?.length || 0) > 3 && (
+                            <p className="text-xs text-muted-foreground">
+                              +{(todaysWorkout.workoutDetails?.exercises?.length || 0) - 3} more exercises
+                            </p>
+                          )}
+                        </div>
+                        <Button 
+                          onClick={() => router.push('/dashboard/workouts')} 
+                          className="w-full mt-4"
+                          variant={todaysWorkout.workoutDetails?.completed ? "outline" : "default"}
+                        >
+                          {todaysWorkout.workoutDetails?.completed ? "View Workout" : "Start Workout"}
+                        </Button>
+                      </div>
+                    </>
                   ) : (
-                    <div className="flex flex-col">
-                      <p className="font-medium mb-1">{todaysWorkout.workoutDetails?.workoutName || 'Workout'}</p>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {todaysWorkout.workoutDetails && Array.isArray(todaysWorkout.workoutDetails.exercises) 
-                          ? todaysWorkout.workoutDetails.exercises.length 
-                          : 0} exercises
-                      </p>
-                      <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                        <Link href="/workouts">
-                          Log Workout <ChevronRight className="ml-1 h-4 w-4" />
-                        </Link>
-                      </Button>
+                    <div className="flex flex-col items-center justify-center py-4">
+                      <p className="text-muted-foreground mb-2">No workout scheduled</p>
+                      {!profile?.hasCompletedOnboarding ? (
+                        <Button onClick={handleGeneratePlans} variant="outline" size="sm" disabled={isLoadingPlans}>
+                          {isLoadingPlans ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                          )}
+                          Generate Plan
+                        </Button>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          To generate a new plan, use Reset Progress in Quick Actions below.
+                        </p>
+                      )}
                     </div>
-                  )
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-4">
-                    <p className="text-muted-foreground mb-2">No workout scheduled</p>
-                    {!profile?.hasCompletedOnboarding ? (
-                      <Button onClick={handleGeneratePlans} variant="outline" size="sm" disabled={isLoadingPlans}>
-                        {isLoadingPlans ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                        )}
-                        Generate Plan
-                      </Button>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        To generate a new plan, use Reset Progress in Quick Actions below.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <Card className="rounded-2xl shadow-md h-full">
@@ -549,10 +595,12 @@ export default function DashboardPage() {
               <CardTitle className="text-xl text-foreground">Workout Plan Issue</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">There seems to be an issue with your workout plan.</p>
+              <p className="text-muted-foreground mb-4">
+                {!workoutPlan ? "No workout plan found." : "Your workout plan appears to be invalid."}
+              </p>
               <Button onClick={handleGeneratePlans} disabled={isLoadingPlans}>
                 {isLoadingPlans ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                Regenerate Plan
+                {!workoutPlan ? "Generate Plan" : "Regenerate Plan"}
               </Button>
             </CardContent>
           </Card>
@@ -603,7 +651,7 @@ export default function DashboardPage() {
                   onClick={() => setIsWeightModalOpen(true)}
                   className="w-full"
                 >
-                  Log Today&rsquo;s Weight
+                  Log Today&apos;s Weight
                 </Button>
               </div>
             </CardContent>

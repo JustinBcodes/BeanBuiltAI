@@ -115,14 +115,29 @@ export function WorkoutTracking() {
     if (!isHydrated || !profile || !profile.hasCompletedOnboarding) return
 
     if (!workoutPlan || !Array.isArray(workoutPlan.multiWeekSchedules)) {
-      console.log("WorkoutTracking: Missing or invalid workout plan, generating...")
+      console.log("🏋️ WorkoutTracking: Missing or invalid workout plan, generating...")
+      console.log("🔍 Current state:", {
+        hasWorkoutPlan: !!workoutPlan,
+        multiWeekSchedulesExists: !!workoutPlan?.multiWeekSchedules,
+        multiWeekSchedulesIsArray: Array.isArray(workoutPlan?.multiWeekSchedules),
+        profileGoalType: profile.goalType,
+        profileExperienceLevel: profile.experienceLevel
+      });
+      
       const workoutPrefs = {
         workoutSplit: profile.experienceLevel === 'beginner' ? 'FullBody' : 'PPL',
         goalType: profile.goalType,
         experienceLevel: profile.experienceLevel,
       }
       
+      console.log("🔄 Creating static workout plan with preferences:", workoutPrefs);
       const staticPlan = createStaticWorkoutPlan(workoutPrefs)
+      console.log("✅ Static workout plan created:", {
+        planName: staticPlan.planName,
+        weeksCount: staticPlan.multiWeekSchedules?.length,
+        firstWeekDaysCount: staticPlan.multiWeekSchedules?.[0]?.length
+      });
+      
       setWorkoutPlan(staticPlan)
       
       // Also initialize progress
@@ -137,12 +152,26 @@ export function WorkoutTracking() {
     const timer = setTimeout(() => {
       if (profile && !workoutPlan) {
         console.log("🚨 FORCE CREATING WORKOUT PLAN - No plan exists after delay")
+        console.log("🔍 Profile state:", {
+          hasProfile: !!profile,
+          goalType: profile.goalType,
+          experienceLevel: profile.experienceLevel,
+          hasCompletedOnboarding: profile.hasCompletedOnboarding
+        });
+        
         const workoutPrefs = {
           workoutSplit: 'FullBody',
           goalType: profile.goalType || 'general_fitness',
           experienceLevel: profile.experienceLevel || 'beginner',
         }
+        
+        console.log("🔄 Force creating with preferences:", workoutPrefs);
         const staticPlan = createStaticWorkoutPlan(workoutPrefs)
+        console.log("✅ Force-created workout plan:", {
+          planName: staticPlan.planName,
+          weeksCount: staticPlan.multiWeekSchedules?.length
+        });
+        
         setWorkoutPlan(staticPlan)
         useStore.getState().initializeProgressFromPlans(staticPlan, useStore.getState().nutritionPlan)
       }
@@ -417,15 +446,41 @@ export function WorkoutTracking() {
                               typeof workoutPlan.planName === 'string'
 
   // Check if week data is valid
-  const hasValidWeekData = Array.isArray(currentWeeklySchedule) && workoutProgress !== null
+  const hasValidWeekData = currentWeeklySchedule !== null && workoutProgress !== null
+
+  console.log("🔍 WorkoutTracking validation state:", {
+    isHydrated,
+    hasProfile: !!profile,
+    hasValidWorkoutPlan,
+    hasValidWeekData,
+    currentViewedWeekIndex,
+    workoutPlanExists: !!workoutPlan,
+    workoutProgressExists: !!workoutProgress,
+    multiWeekSchedulesLength: workoutPlan?.multiWeekSchedules?.length,
+    currentWeeklyScheduleExists: !!currentWeeklySchedule
+  });
 
   if (!hasValidWorkoutPlan) {
+    console.log("❌ Invalid workout plan detected:", {
+      workoutPlanExists: !!workoutPlan,
+      multiWeekSchedulesExists: !!workoutPlan?.multiWeekSchedules,
+      multiWeekSchedulesIsArray: Array.isArray(workoutPlan?.multiWeekSchedules),
+      multiWeekSchedulesLength: workoutPlan?.multiWeekSchedules?.length,
+      planName: workoutPlan?.planName
+    });
+    
     return (
       <ErrorMessage 
         text="Workout plan not found. Please complete onboarding or reset your progress."
         actionText="🚀 Force Generate Plan Now"
         action={() => {
           console.log("🚀 FORCE GENERATING WORKOUT PLAN IMMEDIATELY")
+          console.log("🔍 Current profile state:", {
+            hasProfile: !!profile,
+            goalType: profile?.goalType,
+            experienceLevel: profile?.experienceLevel
+          });
+          
           if (profile) {
             const workoutPrefs = {
               workoutSplit: profile.experienceLevel === 'beginner' ? 'FullBody' : 'PPL',
@@ -433,11 +488,19 @@ export function WorkoutTracking() {
               experienceLevel: profile.experienceLevel,
             }
             
+            console.log("🔄 Creating immediate plan with preferences:", workoutPrefs);
             const immediatePlan = createStaticWorkoutPlan(workoutPrefs)
+            console.log("✅ Immediate plan created:", {
+              planName: immediatePlan.planName,
+              weeksCount: immediatePlan.multiWeekSchedules?.length
+            });
+            
             setWorkoutPlan(immediatePlan)
             useStore.getState().generatePlans(profile)
           } else {
+            console.log("🔄 No profile, creating default plan");
             const defaultPlan = createStaticWorkoutPlan()
+            console.log("✅ Default plan created:", defaultPlan.planName);
             setWorkoutPlan(defaultPlan)
           }
         }}
@@ -446,20 +509,34 @@ export function WorkoutTracking() {
   }
 
   if (!hasValidWeekData) {
+    console.log("❌ Invalid week data detected:", {
+      currentWeeklyScheduleExists: !!currentWeeklySchedule,
+      workoutProgressExists: !!workoutProgress,
+      currentViewedWeekIndex,
+      workoutProgressWeeklyScheduleLength: workoutProgress?.weeklySchedule?.length
+    });
+    
     return (
       <ErrorMessage 
         text="Workout schedule data is missing or malformed. Try viewing the first week."
         actionText="View First Week"
         action={() => {
           console.log("🔴 VIEW FIRST WEEK BUTTON CLICKED!")
+          console.log("🔍 Current state before reset:", {
+            currentViewedWeekIndex,
+            workoutProgressExists: !!workoutProgress,
+            workoutPlanExists: !!workoutPlan
+          });
+          
           setCurrentViewedWeekIndex(0)
           
           if (!workoutProgress && workoutPlan) {
-            console.log("Initializing progress from existing workout plan")
+            console.log("🔄 Initializing progress from existing workout plan")
             useStore.getState().initializeProgressFromPlans(workoutPlan, useStore.getState().nutritionPlan)
           }
           
           if (workoutPlan.currentWeekIndex !== 0) {
+            console.log("🔄 Setting workout plan current week to 0")
             setWorkoutPlan({...workoutPlan, currentWeekIndex: 0})
           }
         }}

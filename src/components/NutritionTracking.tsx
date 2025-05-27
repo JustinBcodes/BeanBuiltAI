@@ -37,7 +37,23 @@ export function NutritionTracking() {
     if (!isHydrated || !profile || !profile.hasCompletedOnboarding) return
 
     if (!nutritionPlan || !Array.isArray(nutritionPlan.multiWeekMealPlans)) {
-      console.log("NutritionTracking: Missing or invalid nutrition plan, generating...")
+      console.log("🍎 NutritionTracking: Missing or invalid nutrition plan, generating...")
+      console.log("🔍 Current state:", {
+        hasNutritionPlan: !!nutritionPlan,
+        multiWeekMealPlansExists: !!nutritionPlan?.multiWeekMealPlans,
+        multiWeekMealPlansIsArray: Array.isArray(nutritionPlan?.multiWeekMealPlans),
+        profileGoalType: profile.goalType,
+        profileCurrentWeight: profile.currentWeight
+      });
+      
+      console.log("🔄 Generating nutrition plan for profile:", {
+        goalType: profile.goalType,
+        currentWeight: profile.currentWeight,
+        height: profile.height,
+        age: profile.age,
+        sex: profile.sex
+      });
+      
       generatePlans(profile)
     }
   }, [isHydrated, profile?.hasCompletedOnboarding, nutritionPlan, profile, generatePlans])
@@ -111,17 +127,47 @@ export function NutritionTracking() {
   // Check if week data is valid
   const hasValidWeekData = currentWeekMealPlan !== null && nutritionProgress !== null
 
+  console.log("🔍 NutritionTracking validation state:", {
+    isHydrated,
+    hasProfile: !!profile,
+    hasValidNutritionPlan,
+    hasValidWeekData,
+    currentViewedWeekIndex,
+    nutritionPlanExists: !!nutritionPlan,
+    nutritionProgressExists: !!nutritionProgress,
+    multiWeekMealPlansLength: nutritionPlan?.multiWeekMealPlans?.length,
+    currentWeekMealPlanExists: !!currentWeekMealPlan
+  });
+
   if (!hasValidNutritionPlan) {
+    console.log("❌ Invalid nutrition plan detected:", {
+      nutritionPlanExists: !!nutritionPlan,
+      multiWeekMealPlansExists: !!nutritionPlan?.multiWeekMealPlans,
+      multiWeekMealPlansIsArray: Array.isArray(nutritionPlan?.multiWeekMealPlans),
+      multiWeekMealPlansLength: nutritionPlan?.multiWeekMealPlans?.length,
+      planName: nutritionPlan?.planName
+    });
+    
     return (
       <ErrorMessage 
         text="Nutrition plan not found. Please complete onboarding or reset your progress."
         actionText="🚀 Force Generate Plan Now"
         action={() => {
           console.log("🚀 FORCE GENERATING NUTRITION PLAN IMMEDIATELY");
+          console.log("🔍 Current profile state:", {
+            hasProfile: !!profile,
+            goalType: profile?.goalType,
+            currentWeight: profile?.currentWeight,
+            height: profile?.height,
+            age: profile?.age,
+            sex: profile?.sex
+          });
+          
           if (profile) {
+            console.log("🔄 Generating plans with profile");
             generatePlans(profile);
           } else {
-            console.log("No profile found, generating default nutrition plan");
+            console.log("🔄 No profile found, generating default nutrition plan");
             generatePlans();
           }
         }}
@@ -130,16 +176,29 @@ export function NutritionTracking() {
   }
 
   if (!hasValidWeekData) {
+    console.log("❌ Invalid week data detected:", {
+      currentWeekMealPlanExists: !!currentWeekMealPlan,
+      nutritionProgressExists: !!nutritionProgress,
+      currentViewedWeekIndex,
+      nutritionProgressWeeklyMealProgressLength: nutritionProgress?.weeklyMealProgress?.length
+    });
+    
     return (
       <ErrorMessage 
         text="Nutrition schedule data is missing or malformed. Try viewing the first week."
         actionText="View First Week"
         action={() => {
-          console.log("Setting nutrition week to 0");
+          console.log("🔴 NUTRITION VIEW FIRST WEEK BUTTON CLICKED!");
+          console.log("🔍 Current state before reset:", {
+            currentViewedWeekIndex,
+            nutritionProgressExists: !!nutritionProgress,
+            nutritionPlanExists: !!nutritionPlan
+          });
+          
           setCurrentViewedWeekIndex(0);
           
           if (nutritionPlan && !nutritionProgress) {
-            console.log("Initializing nutrition progress");
+            console.log("🔄 Initializing nutrition progress from existing plan");
             useStore.getState().initializeProgressFromPlans(useStore.getState().workoutPlan, nutritionPlan);
           }
         }}
@@ -168,6 +227,14 @@ export function NutritionTracking() {
   }
 
   const mealProgress = totalMeals > 0 ? (completedMeals / totalMeals) * 100 : 0
+
+  console.log("🔍 NutritionTracking stats calculated:", {
+    totalMeals,
+    completedMeals,
+    mealProgress: mealProgress.toFixed(1),
+    totalCaloriesConsumed,
+    currentWeekProgressLength: Array.isArray(currentWeekProgress) ? currentWeekProgress.length : 'not array'
+  });
 
   return (
     <div className="space-y-6">

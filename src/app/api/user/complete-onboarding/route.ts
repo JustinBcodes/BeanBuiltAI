@@ -3,18 +3,27 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+// Force dynamic rendering and disable caching for production
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // POST /api/user/complete-onboarding - Mark user as having completed onboarding
 export async function POST() {
   try {
+    console.log('🔄 Complete onboarding API called')
+    
     // Get authenticated session
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.email) {
+      console.log('❌ No valid session found')
       return NextResponse.json(
         { error: 'Unauthorized - No valid session' },
         { status: 401 }
       )
     }
+
+    console.log('✅ Valid session found for:', session.user.email)
 
     // Update user's onboarding status in database
     const updatedUser = await prisma.user.update({
@@ -49,6 +58,8 @@ export async function POST() {
       },
     })
 
+    console.log('✅ Database updated - hasCompletedOnboarding:', updatedUser.hasCompletedOnboarding)
+
     // Transform response to match frontend expectations
     const responseData = {
       ...updatedUser,
@@ -64,11 +75,18 @@ export async function POST() {
         // Signal that session needs to be updated
         refreshSession: true,
       },
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
     )
     
   } catch (error) {
-    console.error('Error completing onboarding:', error)
+    console.error('❌ Error completing onboarding:', error)
     
     // Handle Prisma errors specifically
     if (error instanceof Error && error.message.includes('Record to update not found')) {

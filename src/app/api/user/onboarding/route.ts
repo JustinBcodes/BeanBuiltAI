@@ -6,8 +6,9 @@ import { createStaticWorkoutPlan } from '@/data/workouts'
 import { createStaticNutritionPlan } from '@/data/meals'
 import { z } from 'zod'
 
-// Force this route to be dynamic
+// Force this route to be dynamic and disable caching
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 // Zod schema for onboarding data validation
 const onboardingSchema = z.object({
@@ -30,10 +31,13 @@ const onboardingSchema = z.object({
 export async function POST(req: Request) {
   let sessionUser = null; // For potential rollback
   try {
+    console.log('🔄 Onboarding API called')
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) { // Check for user.id from session
+      console.log('❌ No valid session found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    console.log('✅ Valid session found for user:', session.user.id)
     sessionUser = session.user; // Store for potential rollback
 
     const rawData = await req.json();
@@ -68,12 +72,15 @@ export async function POST(req: Request) {
       ...(finalTargetDate && { targetDate: finalTargetDate }),
     };
 
+    console.log('🔄 Updating user profile in database...')
     const user = await prisma.user.update({
       where: { id: session.user.id }, // Use user.id from session
       data: userUpdateData
     });
+    console.log('✅ User profile updated with hasCompletedOnboarding:', user.hasCompletedOnboarding)
 
     // Plan Generation using static generators
+    console.log('🔄 Generating workout and nutrition plans...')
     const [workoutPlan, nutritionPlan] = await Promise.all([
       createStaticWorkoutPlan({
         goalType: data.goalType,
@@ -89,6 +96,7 @@ export async function POST(req: Request) {
         sex: data.sex,
       })
     ]);
+    console.log('✅ Plans generated successfully')
 
     if (!workoutPlan || !nutritionPlan) {
       // Rollback onboarding status if plan generation fails critically
@@ -100,6 +108,7 @@ export async function POST(req: Request) {
     }
 
     // Save plans
+    console.log('🔄 Saving plans to database...')
     await Promise.all([
       prisma.workoutPlan.create({
         data: {
@@ -120,12 +129,20 @@ export async function POST(req: Request) {
         }
       })
     ]);
+    console.log('✅ Plans saved to database successfully')
 
+    console.log('✅ Onboarding completed successfully')
     return NextResponse.json({ 
       message: 'Onboarding successful and plans generated',
       user, // Send back updated user 
       workoutPlan, // Added workoutPlan to response
       nutritionPlan // Added nutritionPlan to response
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
 
   } catch (error) {

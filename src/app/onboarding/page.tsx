@@ -269,6 +269,16 @@ export default function OnboardingPage() {
       const result = await response.json();
       
       if (result.user && result.workoutPlan && result.nutritionPlan) {
+        console.log("✅ Onboarding API returned complete data:", {
+          userExists: !!result.user,
+          workoutPlanExists: !!result.workoutPlan,
+          nutritionPlanExists: !!result.nutritionPlan,
+          workoutPlanName: result.workoutPlan?.planName,
+          nutritionPlanName: result.nutritionPlan?.planName,
+          workoutWeeksCount: result.workoutPlan?.multiWeekSchedules?.length,
+          nutritionWeeksCount: result.nutritionPlan?.multiWeekMealPlans?.length
+        });
+
         const profileToStore = {
           id: session?.user?.id || '',
           email: session?.user?.email || '',
@@ -284,13 +294,29 @@ export default function OnboardingPage() {
           hasCompletedOnboarding: true,
         };
 
+        console.log("🔄 Profile to store:", {
+          hasCompletedOnboarding: profileToStore.hasCompletedOnboarding,
+          goalType: profileToStore.goalType,
+          experienceLevel: profileToStore.experienceLevel
+        });
+
         const updateStore = () => {
+          console.log("🔄 Setting workout plan in store...");
           setWorkoutPlan(result.workoutPlan);
+          console.log("✅ Workout plan set");
+          
+          console.log("🔄 Setting nutrition plan in store...");
           setNutritionPlan(result.nutritionPlan);
+          console.log("✅ Nutrition plan set");
+          
+          console.log("🔄 Setting profile in store...");
           setProfile(profileToStore);
+          console.log("✅ Profile set");
           
           setTimeout(() => {
+            console.log("🔄 Initializing progress from plans...");
             initializeProgressFromPlans(result.workoutPlan, result.nutritionPlan);
+            console.log("✅ Progress initialized");
           }, 0);
         };
 
@@ -302,24 +328,78 @@ export default function OnboardingPage() {
           duration: 5000,
         });
         
-        // Force session refresh and navigation to dashboard
+        // Step 1: Mark onboarding as complete in database
+        console.log('🔄 Marking onboarding as complete...');
         try {
-          // Force a complete session refresh by triggering a re-authentication
-          await updateSession();
+          const completeResponse = await fetch('/api/user/complete-onboarding', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+            },
+          });
+
+          if (!completeResponse.ok) {
+            const errorData = await completeResponse.json().catch(() => ({ error: 'Failed to complete onboarding' }));
+            throw new Error(errorData.error || 'Failed to mark onboarding as complete');
+          }
+
+          const completeResult = await completeResponse.json();
+          console.log('✅ Onboarding marked as complete:', completeResult);
+
+          // Step 2: Force session refresh using signIn to update JWT token
+          console.log('🔄 Forcing session refresh...');
+          const { signIn } = await import('next-auth/react');
           
-          // Use router.refresh() to force a complete page refresh and re-run middleware
-          router.refresh();
+          await signIn('google', { 
+            redirect: false,
+            callbackUrl: '/dashboard'
+          });
           
-          // Then navigate to dashboard - middleware will handle proper routing
+          console.log('✅ Session refresh completed');
+
+          // Step 3: Small delay to ensure session is updated
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Step 4: Verify plans are still in store before navigation
+          const currentWorkoutPlan = useStore.getState().workoutPlan;
+          const currentNutritionPlan = useStore.getState().nutritionPlan;
+          
+          console.log("🔍 Final store verification before navigation:", {
+            workoutPlanExists: !!currentWorkoutPlan,
+            nutritionPlanExists: !!currentNutritionPlan,
+            workoutPlanValid: !!(currentWorkoutPlan && Array.isArray(currentWorkoutPlan.multiWeekSchedules)),
+            nutritionPlanValid: !!(currentNutritionPlan && Array.isArray(currentNutritionPlan.multiWeekMealPlans))
+          });
+
+          // Step 5: Navigate to dashboard
+          console.log('🔄 Redirecting to dashboard...');
           router.push('/dashboard');
-        } catch (error) {
-          console.error("Error updating session:", error);
-          // Fallback: direct navigation
-          router.push('/dashboard');
+          
+        } catch (sessionError) {
+          console.error('❌ Error with session refresh:', sessionError);
+          
+          // Fallback: Try updateSession and direct navigation
+          try {
+            await updateSession();
+            console.log('✅ Fallback session update completed');
+            router.push('/dashboard');
+          } catch (fallbackError) {
+            console.error('❌ Fallback failed:', fallbackError);
+            // Last resort: force page reload to dashboard
+            if (typeof window !== 'undefined') {
+              window.location.href = '/dashboard';
+            }
+          }
         }
 
       } else {
-        console.error('[Onboarding] Incomplete data received from server. Result:', result);
+        console.error('❌ Incomplete data received from server. Result:', {
+          hasUser: !!result.user,
+          hasWorkoutPlan: !!result.workoutPlan,
+          hasNutritionPlan: !!result.nutritionPlan,
+          resultKeys: Object.keys(result)
+        });
         throw new Error('Incomplete data received from server');
       }
     } catch (error) {

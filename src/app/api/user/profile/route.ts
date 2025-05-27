@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 
+// Force dynamic rendering and disable caching
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // GET /api/user/profile - Fetch current user's profile
 export async function GET() {
   try {
@@ -60,7 +64,14 @@ export async function GET() {
     }
 
     // Return user profile data
-    return NextResponse.json(profileData, { status: 200 })
+    return NextResponse.json(profileData, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    })
     
   } catch (error) {
     console.error('Error fetching user profile:', error)

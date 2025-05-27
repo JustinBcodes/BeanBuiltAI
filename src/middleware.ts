@@ -1,48 +1,35 @@
+import { withAuth } from 'next-auth/middleware'
+import { NextRequestWithAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
-import { NextRequestWithAuth } from 'next-auth/middleware'
 
 export default async function middleware(request: NextRequestWithAuth) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   const url = request.nextUrl.clone()
   
   console.log(`🔄 Middleware: ${url.pathname} | Token: ${!!token} | Onboarding: ${token?.hasCompletedOnboarding}`)
-  
-  // Skip middleware for API routes
-  if (url.pathname.startsWith('/api')) {
-    console.log(`✓ API route, allowing access to ${url.pathname}`)
+
+  // Public routes that don't require authentication
+  const publicRoutes = ['/auth/signin', '/auth/error', '/api/auth']
+  const isPublicRoute = publicRoutes.some(route => url.pathname.startsWith(route))
+
+  // API routes (except auth) should be handled separately
+  if (url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth')) {
+    console.log(`✓ API route, allowing: ${url.pathname}`)
     return NextResponse.next()
   }
 
-  // Allow root page to pass through (landing page)
-  if (url.pathname === '/') {
-    console.log(`✓ Root page, allowing access to ${url.pathname}`)
-    return NextResponse.next()
-  }
-
-  // CRITICAL FIX: Allow onboarding access for authenticated users BEFORE checking token
-  if (url.pathname.startsWith('/onboarding')) {
-    if (!token) {
-      console.log(`❌ Onboarding without token, redirecting ${url.pathname} → /auth/signin`)
-      url.pathname = '/auth/signin'
-      url.searchParams.set('from', request.nextUrl.pathname)
-      return NextResponse.redirect(url)
-    }
-    if (token.hasCompletedOnboarding) {
-      console.log(`✅ Onboarding but already completed → /dashboard`)
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-    console.log(`🎯 Allowing access to onboarding page`)
-    return NextResponse.next()
-  }
-
-  // If no token (unauthenticated) and trying to access protected routes
-  if (!token && url.pathname.startsWith('/dashboard')) {
-    console.log(`❌ No token, redirecting ${url.pathname} → /auth/signin`)
+  // If not authenticated and trying to access protected route
+  if (!token && !isPublicRoute) {
+    console.log(`🚀 Not authenticated, redirecting ${url.pathname} → /auth/signin`)
     url.pathname = '/auth/signin'
-    url.searchParams.set('from', request.nextUrl.pathname)
     return NextResponse.redirect(url)
+  }
+
+  // If not authenticated but on public route, allow
+  if (!token && isPublicRoute) {
+    console.log(`✓ Public route access: ${url.pathname}`)
+    return NextResponse.next()
   }
 
   // If authenticated but on auth pages, redirect based on onboarding status
@@ -64,6 +51,13 @@ export default async function middleware(request: NextRequestWithAuth) {
     return NextResponse.redirect(url)
   }
 
+  // If authenticated, onboarding complete, but trying to access onboarding, redirect to dashboard
+  if (token && token.hasCompletedOnboarding && url.pathname.startsWith('/onboarding')) {
+    console.log(`✅ Completed onboarding, redirecting /onboarding → /dashboard`)
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
   // Let it through
   console.log(`✓ Allowing access to ${url.pathname}`)
   return NextResponse.next()
@@ -71,14 +65,13 @@ export default async function middleware(request: NextRequestWithAuth) {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*', 
-    '/auth/:path*', 
-    '/onboarding/:path*',
-    '/profile/:path*',
-    '/goals/:path*',
-    '/nutrition/:path*',
-    '/workouts/:path*',
-    '/progress/:path*',
-    '/settings/:path*'
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 } 
