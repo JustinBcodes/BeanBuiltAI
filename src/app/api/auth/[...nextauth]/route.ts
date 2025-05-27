@@ -82,6 +82,8 @@ const authOptions: NextAuthOptions = {
   debug: true,
 };
 
-// ✅ Correct export format (no export of `authOptions`)
+// Export authOptions for use in other API routes
+export { authOptions }
+
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 

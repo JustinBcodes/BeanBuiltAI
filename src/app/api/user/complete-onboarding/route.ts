@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
 
 // POST /api/user/complete-onboarding - Mark user as having completed onboarding
@@ -55,11 +55,14 @@ export async function POST() {
       currentWeight: updatedUser.weight,
     }
 
+    // Return success with instruction to refresh session
     return NextResponse.json(
       {
         success: true,
         message: 'Onboarding completed successfully',
         user: responseData,
+        // Signal that session needs to be updated
+        refreshSession: true,
       },
       { status: 200 }
     )
