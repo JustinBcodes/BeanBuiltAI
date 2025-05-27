@@ -1,114 +1,191 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
+import { authOptions } from '@/lib/auth'
 
+// GET /api/user/profile - Fetch current user's profile
 export async function GET() {
   try {
+    // Get authenticated session
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized - No valid session' },
+        { status: 401 }
+      )
     }
 
-    const userFromDb = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email,
+      },
       select: {
         id: true,
         email: true,
         name: true,
+        image: true,
+        hasCompletedOnboarding: true,
         age: true,
         sex: true,
         height: true,
         weight: true,
         targetWeight: true,
+        startingWeight: true,
         goalType: true,
         experienceLevel: true,
         preferredWorkoutDays: true,
-        hasCompletedOnboarding: true,
+        weakPoints: true,
+        favoriteFoods: true,
+        allergies: true,
         targetDate: true,
-      }
+        createdAt: true,
+        updatedAt: true,
+      },
     })
 
-    if (!userFromDb) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found in database' },
+        { status: 404 }
+      )
     }
 
-    // Convert the DB format to match the Profile interface
-    const userProfile = {
-      id: userFromDb.id,
-      email: userFromDb.email || session.user.email || '',
-      name: userFromDb.name || '',
-      age: userFromDb.age || 25,
-      sex: userFromDb.sex || 'male',
-      height: userFromDb.height || 70,
-      currentWeight: userFromDb.weight || 150,
-      targetWeight: userFromDb.targetWeight || 140,
-      goalType: userFromDb.goalType || 'general_fitness',
-      experienceLevel: userFromDb.experienceLevel || 'beginner',
-      preferredWorkoutDays: userFromDb.preferredWorkoutDays || ['monday', 'wednesday', 'friday'],
-      hasCompletedOnboarding: userFromDb.hasCompletedOnboarding || false,
-    };
+    // Transform the data to match the frontend expectations
+    // Map 'weight' to 'currentWeight' for compatibility
+    const profileData = {
+      ...user,
+      currentWeight: user.weight,
+    }
 
-    return NextResponse.json(userProfile)
+    // Return user profile data
+    return NextResponse.json(profileData, { status: 200 })
+    
   } catch (error) {
     console.error('Error fetching user profile:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch user profile' },
+      { error: 'Internal server error while fetching profile' },
       { status: 500 }
     )
   }
 }
 
-export async function PUT(req: Request) {
+// POST /api/user/profile - Update user's profile
+export async function POST(request: NextRequest) {
   try {
+    // Get authenticated session
     const session = await getServerSession(authOptions)
+    
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized - No valid session' },
+        { status: 401 }
+      )
     }
 
-    const data = await req.json()
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        name: data.name,
-        height: data.height,
-        weight: data.weight,
-        goalType: data.goalType,
-        experienceLevel: data.experienceLevel,
-        targetWeight: data.targetWeight,
-        targetDate: data.targetDate
+    // Parse request body
+    const body = await request.json()
+    
+    // Validate and sanitize input data
+    const allowedFields = [
+      'name',
+      'hasCompletedOnboarding',
+      'age',
+      'sex',
+      'height',
+      'weight', // Map currentWeight to weight
+      'targetWeight',
+      'startingWeight',
+      'goalType',
+      'experienceLevel',
+      'preferredWorkoutDays',
+      'weakPoints',
+      'favoriteFoods',
+      'allergies',
+      'targetDate',
+    ]
+    
+    const updateData: any = {}
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field]
       }
+    }
+    
+    // Handle currentWeight mapping to weight
+    if (body.currentWeight !== undefined) {
+      updateData.weight = body.currentWeight
+    }
+
+    // Ensure we have something to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'No valid fields provided for update' },
+        { status: 400 }
+      )
+    }
+
+    // Update user in database
+    const updatedUser = await prisma.user.update({
+      where: {
+        email: session.user.email,
+      },
+      data: {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        hasCompletedOnboarding: true,
+        age: true,
+        sex: true,
+        height: true,
+        weight: true,
+        targetWeight: true,
+        startingWeight: true,
+        goalType: true,
+        experienceLevel: true,
+        preferredWorkoutDays: true,
+        weakPoints: true,
+        favoriteFoods: true,
+        allergies: true,
+        targetDate: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     })
 
-    // Return in the same format as GET
-    const userProfile = {
-      id: updatedUser.id,
-      email: updatedUser.email || session.user.email || '',
-      name: updatedUser.name || '',
-      age: updatedUser.age || 25,
-      sex: updatedUser.sex || 'male',
-      height: updatedUser.height || 70,
-      currentWeight: updatedUser.weight || 150,
-      targetWeight: updatedUser.targetWeight || 140,
-      goalType: updatedUser.goalType || 'general_fitness',
-      experienceLevel: updatedUser.experienceLevel || 'beginner',
-      preferredWorkoutDays: updatedUser.preferredWorkoutDays || ['monday', 'wednesday', 'friday'],
-      hasCompletedOnboarding: updatedUser.hasCompletedOnboarding || false,
-    };
+    // Transform the response to match frontend expectations
+    const responseData = {
+      ...updatedUser,
+      currentWeight: updatedUser.weight,
+    }
 
-    return NextResponse.json(userProfile)
-  } catch (error) {
-    console.error('Failed to update profile:', error)
     return NextResponse.json(
-      { error: 'Failed to update profile' },
+      { 
+        message: 'Profile updated successfully',
+        user: responseData 
+      },
+      { status: 200 }
+    )
+    
+  } catch (error) {
+    console.error('Error updating user profile:', error)
+    
+    // Handle Prisma errors specifically
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
+      return NextResponse.json(
+        { error: 'User not found in database' },
+        { status: 404 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: 'Internal server error while updating profile' },
       { status: 500 }
     )
   }
