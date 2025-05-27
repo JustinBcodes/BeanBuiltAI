@@ -3,7 +3,6 @@ import { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './prisma';
-import NextAuth from "next-auth";
 
 // Define our custom user type
 interface CustomUser {

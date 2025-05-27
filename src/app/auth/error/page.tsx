@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { AlertTriangle } from 'lucide-react'
 
+// Force dynamic rendering for NextAuth server-side data
+export const dynamic = 'force-dynamic'
+
 export default function AuthErrorPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
