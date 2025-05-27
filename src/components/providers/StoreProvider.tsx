@@ -44,13 +44,19 @@ function ProfileLoader() {
       return
     }
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return
     }
 
     hasInitialized.current = true
 
     async function initializeProfile() {
+      // Additional safety check for TypeScript
+      if (!session?.user?.id) {
+        console.error('ProfileLoader: Session or user ID is null')
+        return
+      }
+
       try {
         // Always try to fetch the latest profile from API first
         const response = await fetch('/api/user/profile', {
