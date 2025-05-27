@@ -26,24 +26,7 @@ export default function SignInPage() {
   const error = searchParams.get('error')
   const from = searchParams.get('from') || '/dashboard'
 
-  // Client-side redirect for authenticated users as fallback
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      // Give middleware a moment to handle the redirect, then fallback to client-side
-      const timeoutId = setTimeout(() => {
-        // Double-check that we're still on the signin page (middleware might have redirected)
-        if (window.location.pathname.startsWith('/auth/signin')) {
-          if (session.user.hasCompletedOnboarding) {
-            router.push('/dashboard')
-          } else {
-            router.push('/onboarding')
-          }
-        }
-      }, 750) // 750ms delay to let middleware handle it first
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [status, session, router])
+  // No client-side redirects - let middleware handle all routing decisions
 
   const handleSignIn = async (provider: string) => {
     try {

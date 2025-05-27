@@ -44,6 +44,7 @@ function ProfileLoader() {
     }
 
     if (status === 'authenticated' && session?.user && !profile) {
+      console.log(`🔄 StoreProvider: Creating profile from session data for user ${session.user.id}`)
       hasInitialized.current = true
       
       // Create profile immediately from session data
@@ -63,11 +64,13 @@ function ProfileLoader() {
         preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
         sex: 'male' as const,
       }
+      console.log(`✅ StoreProvider: Profile created with onboarding status: ${newProfile.hasCompletedOnboarding}`)
       setProfile(newProfile)
       
       // Async fetch from API to update with latest data
       const fetchLatestProfile = async () => {
         try {
+          console.log(`🔄 StoreProvider: Fetching latest profile from API`)
           const response = await fetch('/api/user/profile', {
             credentials: 'include',
             headers: {
@@ -77,6 +80,7 @@ function ProfileLoader() {
           
           if (response.ok) {
             const fetchedProfile = await response.json()
+            console.log(`✅ StoreProvider: Updated profile from API with onboarding status: ${fetchedProfile.hasCompletedOnboarding}`)
             setProfile(fetchedProfile)
             
             // Generate plans if onboarding is complete and plans are missing/invalid
@@ -95,7 +99,7 @@ function ProfileLoader() {
             }
           }
         } catch (error) {
-          console.error("ProfileLoader: Error fetching latest profile:", error)
+          console.error("🚨 StoreProvider: Error fetching latest profile:", error)
           // Keep the session-based profile if API fails
         }
       }
@@ -107,6 +111,7 @@ function ProfileLoader() {
 
   // Show loading until we have either a profile or confirmed unauthenticated status
   if (status === 'loading' || (status === 'authenticated' && !profile)) {
+    console.log(`🔄 StoreProvider: Showing loading - status: ${status}, profile: ${!!profile}`)
     return <LoadingSkeleton message="Loading your profile..." />
   }
 

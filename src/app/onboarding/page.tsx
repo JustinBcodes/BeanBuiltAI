@@ -17,6 +17,9 @@ import { Loading } from '@/components/ui/loading'
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+// Force dynamic rendering for NextAuth server-side data
+export const dynamic = 'force-dynamic'
+
 export default function OnboardingPage() {
   // ALL HOOKS MUST BE AT THE TOP LEVEL
   const { data: session, status: sessionStatus, update: updateSession } = useSession()
@@ -30,7 +33,6 @@ export default function OnboardingPage() {
   const isSubmitting = useRef(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formError, setFormError] = useState('')
-  const [redirectReady, setRedirectReady] = useState(false) // For redirecting to dashboard
   
   const [formData, setFormData] = useState({
     name: session?.user?.name || '',
@@ -84,11 +86,7 @@ export default function OnboardingPage() {
     }
   }, [session?.user?.name, formData.name]);
 
-  useEffect(() => {
-    if (redirectReady) {
-      router.push('/dashboard');
-    }
-  }, [redirectReady, router]);
+  // Removed redirectReady useEffect - navigation is handled directly in handleSubmit
 
   // useEffect for redirecting if not authenticated
   useEffect(() => {
@@ -209,7 +207,7 @@ export default function OnboardingPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
-    if (isLoading || redirectReady || isSubmitting.current) {
+    if (isLoading || isSubmitting.current) {
       return;
     }
     
@@ -304,14 +302,21 @@ export default function OnboardingPage() {
           duration: 5000,
         });
         
-        // Update the NextAuth session to reflect onboarding completion
+        // Force session refresh and navigation to dashboard
         try {
+          // Force a complete session refresh by triggering a re-authentication
           await updateSession();
+          
+          // Use router.refresh() to force a complete page refresh and re-run middleware
+          router.refresh();
+          
+          // Then navigate to dashboard - middleware will handle proper routing
+          router.push('/dashboard');
         } catch (error) {
           console.error("Error updating session:", error);
+          // Fallback: direct navigation
+          router.push('/dashboard');
         }
-        
-        setRedirectReady(true);
 
       } else {
         console.error('[Onboarding] Incomplete data received from server. Result:', result);
@@ -547,7 +552,7 @@ export default function OnboardingPage() {
               type="submit" 
               size="lg" 
               className="w-full md:w-auto" 
-              disabled={isLoading || redirectReady || isSubmitting.current}
+              disabled={isLoading || isSubmitting.current}
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />} 
               {isLoading ? 'Generating Your Plan...' : 'Complete Onboarding & Generate Plan'}
