@@ -12,6 +12,10 @@ const nextConfig = {
   experimental: {
     outputFileTracingRoot: undefined,
   },
+  // Force all API routes to be dynamic
+  rewrites: async () => {
+    return [];
+  },
 }
 
 module.exports = nextConfig 

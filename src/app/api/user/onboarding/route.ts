@@ -6,6 +6,9 @@ import { createStaticWorkoutPlan } from '@/data/workouts'
 import { createStaticNutritionPlan } from '@/data/meals'
 import { z } from 'zod'
 
+// Force this route to be dynamic
+export const dynamic = 'force-dynamic'
+
 // Zod schema for onboarding data validation
 const onboardingSchema = z.object({
   name: z.string().min(1, "Name is required"),
