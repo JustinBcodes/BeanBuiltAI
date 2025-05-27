@@ -40,7 +40,7 @@ export function NutritionTracking() {
       console.log("NutritionTracking: Missing or invalid nutrition plan, generating...")
       generatePlans(profile)
     }
-  }, [isHydrated, profile?.hasCompletedOnboarding, nutritionPlan?.multiWeekMealPlans?.length, profile, generatePlans])
+  }, [isHydrated, profile?.hasCompletedOnboarding, nutritionPlan, profile, generatePlans])
 
   // Safe access to current week data with comprehensive validation
   const currentWeekMealPlan = React.useMemo(() => {
@@ -51,7 +51,7 @@ export function NutritionTracking() {
       return null
     }
     return nutritionPlan.multiWeekMealPlans[currentViewedWeekIndex]
-  }, [nutritionPlan?.multiWeekMealPlans, currentViewedWeekIndex])
+  }, [nutritionPlan, currentViewedWeekIndex])
   
   const currentWeekProgress = React.useMemo(() => {
     if (!nutritionProgress || 
@@ -61,7 +61,7 @@ export function NutritionTracking() {
       return null
     }
     return nutritionProgress.weeklyMealProgress[currentViewedWeekIndex]
-  }, [nutritionProgress?.weeklyMealProgress, currentViewedWeekIndex])
+  }, [nutritionProgress, currentViewedWeekIndex])
 
   const toggleDay = (dayOfWeek: string) => {
     setExpandedDays(prev =>

@@ -120,7 +120,7 @@ export default function WorkoutsPage() {
       </div>
       {workoutPlan?.summaryNotes && (
         <div className="mt-10 p-6 bg-card rounded-lg shadow">
-          <h3 className="text-xl font-semibold mb-3 text-foreground">Coach's Notes</h3>
+                          <h3 className="text-xl font-semibold mb-3 text-foreground">Coach&rsquo;s Notes</h3>
           <p className="text-muted-foreground whitespace-pre-wrap">{workoutPlan.summaryNotes}</p>
         </div>
       )}

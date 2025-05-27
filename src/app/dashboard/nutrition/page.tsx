@@ -80,7 +80,7 @@ export default function NutritionPage() {
         <h2 className="text-2xl font-semibold mb-4">Your Nutrition Plan is Cooking!</h2>
         <p className="text-muted-foreground mb-6">
           {profile?.hasCompletedOnboarding ? 
-            "Your plan isn't available yet or needs to be generated. Please click below." : 
+            "Your plan isn&rsquo;t available yet or needs to be generated. Please click below." : 
             "Complete your onboarding to generate your personalized nutrition plan."
           }
         </p>

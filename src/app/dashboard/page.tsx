@@ -273,7 +273,7 @@ export default function DashboardPage() {
         <Target size={48} className="text-primary mb-4" />
         <h2 className="text-2xl font-bold text-foreground">Welcome to Your Fitness Journey!</h2>
         <p className="text-muted-foreground max-w-md">
-          It looks like you haven't completed your onboarding yet. Please set up your profile to generate personalized workout and nutrition plans.
+          It looks like you haven&rsquo;t completed your onboarding yet. Please set up your profile to generate personalized workout and nutrition plans.
         </p>
         <Button asChild size="lg" className="mt-4 bg-primary hover:bg-primary/90 text-primary-foreground">
           <Link href="/onboarding">Complete Onboarding</Link>
@@ -481,7 +481,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="text-xl text-foreground flex items-center">
                 <Dumbbell className="w-5 h-5 mr-2 text-primary" />
-                Today's Workout
+                Today&rsquo;s Workout
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -498,7 +498,7 @@ export default function DashboardPage() {
                         <CheckCircle2 className="w-5 h-5 mr-2" />
                         <span className="font-medium">Workout Completed</span>
                       </div>
-                      <p className="text-sm mb-4">{todaysWorkout.workoutDetails?.workoutName || 'Today\'s workout'}</p>
+                      <p className="text-sm mb-4">{todaysWorkout.workoutDetails?.workoutName || 'Today&rsquo;s workout'}</p>
                       <Button asChild variant="outline" className="w-full">
                         <Link href="/workouts">
                           View Details <ChevronRight className="ml-1 h-4 w-4" />
@@ -603,7 +603,7 @@ export default function DashboardPage() {
                   onClick={() => setIsWeightModalOpen(true)}
                   className="w-full"
                 >
-                  Log Today's Weight
+                  Log Today&rsquo;s Weight
                 </Button>
               </div>
             </CardContent>
@@ -778,7 +778,7 @@ export default function DashboardPage() {
       <Dialog open={isWeightModalOpen} onOpenChange={setIsWeightModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Log Today's Weight</DialogTitle>
+            <DialogTitle>Log Today&rsquo;s Weight</DialogTitle>
             <DialogDescription>
               Enter your current weight to track your progress.
             </DialogDescription>

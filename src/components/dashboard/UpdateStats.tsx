@@ -85,7 +85,7 @@ export function UpdateStats() {
 
   // Load profile data only once or when profile changes significantly
   useEffect(() => {
-    if (profile && (!profileLoaded.current || !formData.name)) {
+    if (profile && !profileLoaded.current) {
       profileLoaded.current = true;
       
       // Convert values from API/DB format

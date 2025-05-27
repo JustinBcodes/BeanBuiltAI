@@ -13,7 +13,7 @@ export default function AuthErrorPage() {
   const errorMessages: { [key: string]: string } = {
     OAuthSignin: "There was an issue initiating the sign-in process with the external provider. Please try again.",
     OAuthCallback: "There was an issue receiving data from the external sign-in provider. Please try again.",
-    OAuthCreateAccount: "We couldn't create your account using the external provider. The email might be in use or there was a provider error.",
+    OAuthCreateAccount: "We couldn&rsquo;t create your account using the external provider. The email might be in use or there was a provider error.",
     EmailCreateAccount: "Failed to create an account using the email provider.",
     Callback: "An error occurred during the sign-in process. Please try again.",
     OAuthAccountNotLinked: "This email is already linked to an account with a different sign-in method. Please use your original sign-in method.",

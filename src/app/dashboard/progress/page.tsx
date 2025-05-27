@@ -281,7 +281,7 @@ export default function ProgressPage() {
                 <Terminal className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-primary">No Workout Data</AlertTitle>
                 <AlertDescription>
-                  Your workout plan isn't set up or has no workouts. Complete onboarding or generate a plan.
+                  Your workout plan isn&rsquo;t set up or has no workouts. Complete onboarding or generate a plan.
                 </AlertDescription>
               </Alert>
             ) : (
@@ -319,7 +319,7 @@ export default function ProgressPage() {
                  <Terminal className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-primary">No Nutrition Data</AlertTitle>
                 <AlertDescription>
-                  Your nutrition plan isn't set up or has no meals. Complete onboarding or generate a plan.
+                  Your nutrition plan isn&rsquo;t set up or has no meals. Complete onboarding or generate a plan.
                 </AlertDescription>
               </Alert>
             ) : (

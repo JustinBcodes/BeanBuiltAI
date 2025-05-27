@@ -66,7 +66,7 @@ export function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <p>Let's get started by setting up your profile.</p>
+            <p>Let&rsquo;s get started by setting up your profile.</p>
             <Button asChild>
               <Link href="/profile">Complete Profile</Link>
             </Button>

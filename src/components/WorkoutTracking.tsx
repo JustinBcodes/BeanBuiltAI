@@ -108,7 +108,7 @@ export function WorkoutTracking() {
     if (!isHydrated || !workoutPlan) return
     
     setCurrentViewedWeekIndex(workoutPlan.currentWeekIndex)
-  }, [isHydrated, workoutPlan?.currentWeekIndex, setCurrentViewedWeekIndex])
+  }, [isHydrated, workoutPlan, setCurrentViewedWeekIndex])
 
   // Protected useEffect for plan generation - only runs when hydrated and profile is valid
   useEffect(() => {
@@ -128,7 +128,7 @@ export function WorkoutTracking() {
       // Also initialize progress
       useStore.getState().initializeProgressFromPlans(staticPlan, useStore.getState().nutritionPlan)
     }
-  }, [isHydrated, profile?.hasCompletedOnboarding, workoutPlan?.multiWeekSchedules?.length, profile, setWorkoutPlan])
+  }, [isHydrated, profile?.hasCompletedOnboarding, workoutPlan, profile, setWorkoutPlan])
   
   // Force create workout plan after delay if still missing - only when hydrated
   useEffect(() => {
@@ -161,7 +161,7 @@ export function WorkoutTracking() {
     }
     const weekData = workoutPlan.multiWeekSchedules[currentViewedWeekIndex]
     return Array.isArray(weekData) ? weekData : null
-  }, [workoutPlan?.multiWeekSchedules, currentViewedWeekIndex])
+  }, [workoutPlan, currentViewedWeekIndex])
   
   const currentWeekProgress = React.useMemo(() => {
     if (!workoutProgress || 
@@ -172,7 +172,7 @@ export function WorkoutTracking() {
     }
     const progressData = workoutProgress.weeklySchedule[currentViewedWeekIndex]
     return Array.isArray(progressData) ? progressData : null
-  }, [workoutProgress?.weeklySchedule, currentViewedWeekIndex])
+  }, [workoutProgress, currentViewedWeekIndex])
 
   // Add defensive validation to ensure currentWeekProgress is always an array - only when hydrated
   useEffect(() => {

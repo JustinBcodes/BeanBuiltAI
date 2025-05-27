@@ -507,7 +507,7 @@ export default function OnboardingPage() {
                   placeholder="E.g., lower back, shoulder mobility, core strength (comma-separated)"
                   className="min-h-[80px]"
                 />
-                <p className="text-xs text-muted-foreground pl-1">Help us tailor your plan by listing areas you'd like to improve.</p>
+                <p className="text-xs text-muted-foreground pl-1">Help us tailor your plan by listing areas you&rsquo;d like to improve.</p>
               </div>
             </CardContent>
           </Card>
@@ -526,7 +526,7 @@ export default function OnboardingPage() {
                   placeholder="E.g., chicken breast, broccoli, sweet potatoes, almonds (comma-separated)"
                   className="min-h-[80px]"
                 />
-                <p className="text-xs text-muted-foreground pl-1">List some healthy foods you enjoy. We'll try to include them!</p>
+                <p className="text-xs text-muted-foreground pl-1">List some healthy foods you enjoy. We&rsquo;ll try to include them!</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="allergies">Allergies or Foods to Avoid</Label>

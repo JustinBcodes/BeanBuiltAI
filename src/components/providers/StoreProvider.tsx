@@ -51,7 +51,7 @@ function ProfileLoader() {
         });
       }
     }
-  }, [status, session?.user?.hasCompletedOnboarding, profile?.hasCompletedOnboarding, profile, setProfile])
+  }, [status, session?.user, profile, setProfile])
 
   useEffect(() => {
     async function loadProfileAndGeneratePlans() {
@@ -133,7 +133,7 @@ function ProfileLoader() {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [session, status, isHydrated, hasInitialized]) // Simplified dependencies
+  }, [session, status, isHydrated, hasInitialized, profile, generatePlans, workoutPlan, nutritionPlan, setProfile]) // Complete dependencies
 
   return null // This component doesn't render anything
 }
