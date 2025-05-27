@@ -10,10 +10,8 @@ import { useStore } from '@/store'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { data: session, status } = useSession()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const profile = useStore(state => state.profile)
-  const onboardingComplete = profile?.hasCompletedOnboarding
 
   // Close sidebar when route changes on mobile
   useEffect(() => {
@@ -24,16 +22,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname.startsWith('/auth/')
   const isOnboardingPage = pathname.startsWith('/onboarding')
   
-  // Determine if the main app shell (sidebar, header) should be shown
-  const showAppShell = session && !isLandingPage && !isAuthPage
-  // Only show sidebar if onboarding is complete and we're not on the onboarding page
-  const showSidebar = showAppShell && onboardingComplete && !isOnboardingPage
-
-  if (!showAppShell) {
-    // For landing page, auth pages, or if no session, just render children (e.g. public pages)
-    // This assumes public pages don't need the AppLayout shell.
+  // For landing page, auth pages, just render children without app shell
+  if (isLandingPage || isAuthPage) {
     return <>{children}</>; 
   }
+
+  // Show sidebar only if onboarding is complete and we're not on onboarding page
+  const showSidebar = profile?.hasCompletedOnboarding && !isOnboardingPage
 
   return (
     <div className="flex h-screen bg-background">

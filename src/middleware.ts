@@ -3,25 +3,22 @@ import { getToken } from 'next-auth/jwt'
 import { NextRequestWithAuth } from 'next-auth/middleware'
 
 export default async function middleware(request: NextRequestWithAuth) {
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   const isAuth = !!token
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding')
   const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard')
   const isApiRoute = request.nextUrl.pathname.startsWith('/api')
+  const isRootPage = request.nextUrl.pathname === '/'
 
   // Skip middleware for API routes
   if (isApiRoute) {
     return NextResponse.next()
   }
 
-  // If user is on auth pages and is already authenticated, redirect based on onboarding status
-  if (isAuthPage && isAuth) {
-    if (token.hasCompletedOnboarding) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
-    }
+  // Allow root page to pass through (landing page)
+  if (isRootPage) {
+    return NextResponse.next()
   }
 
   // If user is not authenticated and trying to access protected routes
@@ -35,19 +32,30 @@ export default async function middleware(request: NextRequestWithAuth) {
     )
   }
 
-  // If user is authenticated but hasn't completed onboarding
-  if (isAuth && !isOnboardingPage && !token.hasCompletedOnboarding) {
-    // Only redirect to onboarding if they're trying to access dashboard
-    if (isDashboardPage) {
+  // If user is on auth pages and is already authenticated, redirect based on onboarding status
+  if (isAuthPage && isAuth) {
+    const onboardingComplete = token.hasCompletedOnboarding
+    if (onboardingComplete) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    } else {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
-    // Allow access to other pages like profile, etc.
-    return NextResponse.next()
+  }
+
+  // If user is authenticated but hasn't completed onboarding
+  if (isAuth && !isOnboardingPage) {
+    const onboardingComplete = token.hasCompletedOnboarding
+    if (!onboardingComplete && isDashboardPage) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
   }
   
   // If user has completed onboarding but is on onboarding page, redirect to dashboard
-  if (isAuth && isOnboardingPage && token.hasCompletedOnboarding) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (isAuth && isOnboardingPage) {
+    const onboardingComplete = token.hasCompletedOnboarding
+    if (onboardingComplete) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
   // Allow all other requests to pass through
@@ -63,6 +71,7 @@ export const config = {
     '/goals/:path*',
     '/nutrition/:path*',
     '/workouts/:path*',
-    '/progress/:path*'
+    '/progress/:path*',
+    '/settings/:path*'
   ],
 } 

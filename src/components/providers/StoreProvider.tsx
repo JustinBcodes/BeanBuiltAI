@@ -18,6 +18,8 @@ function ProfileLoader() {
   const hasInitialized = useRef(false)
   const lastSessionId = useRef<string | null>(null)
 
+  // Debug logging removed for production
+
   // Hydration guard
   useEffect(() => {
     setIsHydrated(true)
@@ -51,7 +53,6 @@ function ProfileLoader() {
     hasInitialized.current = true
 
     async function initializeProfile() {
-      // Additional safety check for TypeScript
       if (!session?.user?.id) {
         console.error('ProfileLoader: Session or user ID is null')
         return
@@ -146,6 +147,43 @@ function ProfileLoader() {
     return () => clearTimeout(timeoutId)
   }, [isHydrated, status, session, profile, setProfile, generatePlans, workoutPlan, nutritionPlan])
 
+  // Don't render children until we have either:
+  // 1. A loaded profile (from API or session), OR
+  // 2. An unauthenticated session (so middleware can handle redirect)
+  // 3. Session is loading (show loading state)
+  if (status === 'loading') {
+    return null // Let parent components handle loading states
+  }
+
+  if (status === 'authenticated' && session?.user && !profile) {
+    // Check if we should create profile from session data
+    if (session.user.id && !hasInitialized.current) {
+      // Profile initialization is in progress, wait
+      return null
+    }
+    
+    // If we have a session but no profile and initialization has run, create basic profile
+    const newProfile = {
+      id: session.user.id,
+      name: session.user.name ?? "",
+      email: session.user.email ?? "",
+      hasCompletedOnboarding: session.user.hasCompletedOnboarding ?? false,
+      image: session.user.image ?? "",
+      // Default values for missing fields
+      age: 25,
+      height: 70,
+      currentWeight: 150,
+      targetWeight: 140,
+      goalType: 'general_fitness' as const,
+      experienceLevel: 'beginner' as const,
+      preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
+      sex: 'male' as const,
+    }
+    setProfile(newProfile)
+    return null // Return null until next render when profile is set
+  }
+
+  // Profile is ready or user is unauthenticated - let children render
   return null
 }
 

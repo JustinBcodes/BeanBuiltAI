@@ -33,9 +33,9 @@ export default function SignInPage() {
 
   const handleSignIn = async (provider: string) => {
     try {
-      // Don't specify callbackUrl here - let NextAuth and middleware handle routing
+      // Use dashboard as default callback URL, middleware will handle proper routing
       await signIn(provider, { 
-        callbackUrl: from,
+        callbackUrl: '/dashboard',
         redirect: true 
       });
     } catch (err) {
