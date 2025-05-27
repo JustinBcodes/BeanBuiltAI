@@ -1,4 +1,4 @@
-# BeanBuilt AI
+# BeanBuilt AI beanbuiltai.com
 
 A personalized fitness and nutrition planning application powered by AI.
 
@@ -32,7 +32,7 @@ A personalized fitness and nutrition planning application powered by AI.
 3. Create a `.env` file in the root directory with the following variables:
    ```
    # Database
-   DATABASE_URL="postgresql://user:password@localhost:5432/beanbuilt?schema=public"
+   DATABASE_URL="postgresql://user:"
 
    # OpenAI
    OPENAI_API_KEY="your-openai-api-key"
