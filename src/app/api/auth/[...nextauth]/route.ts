@@ -6,7 +6,7 @@ import { NextAuthOptions } from "next-auth";
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -28,16 +28,16 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
+    async session({ session, token }) {
+      if (token?.sub) session.user.id = token.sub;
+      session.user.hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
+      return session;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.hasCompletedOnboarding = user.hasCompletedOnboarding ?? false;
       }
       return token;
-    },
-    async session({ session, token }) {
-      session.user.id = token.sub;
-      session.user.hasCompletedOnboarding = token.hasCompletedOnboarding ?? false;
-      return session;
     },
     async redirect({ baseUrl }) {
       return `${baseUrl}/dashboard`;
@@ -46,5 +46,6 @@ export const authOptions: NextAuthOptions = {
   debug: true,
 };
 
+// ✅ Correct export format (no export of `authOptions`)
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 
