@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -31,16 +31,17 @@ const navigation = [
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { profile } = useStore()
 
   // Show loading while session is loading or profile is not yet hydrated
+  // Middleware ensures that if we reach this component, user is authenticated and should have access
   if (status === 'loading' || !profile) {
-    return <LoadingSkeleton />
+    return <LoadingSkeleton message="Loading dashboard..." />
   }
 
   // If we reach here, middleware has ensured user is authenticated and profile is loaded
-  // Render the dashboard layout
+  // Just render the dashboard layout - no redirect logic needed
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Mobile sidebar */}

@@ -4,61 +4,48 @@ import { NextRequestWithAuth } from 'next-auth/middleware'
 
 export default async function middleware(request: NextRequestWithAuth) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
-  const isAuth = !!token
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
-  const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding')
-  const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard')
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
-  const isRootPage = request.nextUrl.pathname === '/'
-
+  const url = request.nextUrl.clone()
+  
   // Skip middleware for API routes
-  if (isApiRoute) {
+  if (url.pathname.startsWith('/api')) {
     return NextResponse.next()
   }
 
   // Allow root page to pass through (landing page)
-  if (isRootPage) {
+  if (url.pathname === '/') {
     return NextResponse.next()
   }
 
-  // If user is not authenticated and trying to access protected routes
-  if (!isAuth && (isDashboardPage || isOnboardingPage)) {
-    let from = request.nextUrl.pathname
-    if (request.nextUrl.search) {
-      from += request.nextUrl.search
-    }
-    return NextResponse.redirect(
-      new URL(`/auth/signin?from=${encodeURIComponent(from)}`, request.url)
-    )
+  // If no token (unauthenticated) and trying to access protected routes
+  if (!token && (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding'))) {
+    url.pathname = '/auth/signin'
+    url.searchParams.set('from', request.nextUrl.pathname)
+    return NextResponse.redirect(url)
   }
 
-  // If user is on auth pages and is already authenticated, redirect based on onboarding status
-  if (isAuthPage && isAuth) {
-    const onboardingComplete = token.hasCompletedOnboarding
-    if (onboardingComplete) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+  // If authenticated but on auth pages, redirect based on onboarding status
+  if (token && url.pathname.startsWith('/auth')) {
+    if (token.hasCompletedOnboarding) {
+      url.pathname = '/dashboard'
     } else {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
+      url.pathname = '/onboarding'
     }
+    return NextResponse.redirect(url)
   }
 
-  // If user is authenticated but hasn't completed onboarding
-  if (isAuth && !isOnboardingPage) {
-    const onboardingComplete = token.hasCompletedOnboarding
-    if (!onboardingComplete && isDashboardPage) {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
-    }
-  }
-  
-  // If user has completed onboarding but is on onboarding page, redirect to dashboard
-  if (isAuth && isOnboardingPage) {
-    const onboardingComplete = token.hasCompletedOnboarding
-    if (onboardingComplete) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+  // If authenticated but onboarding not complete, force to onboarding
+  if (token && !token.hasCompletedOnboarding && !url.pathname.startsWith('/onboarding')) {
+    url.pathname = '/onboarding'
+    return NextResponse.redirect(url)
   }
 
-  // Allow all other requests to pass through
+  // If onboarding is complete but user is on onboarding page, redirect to dashboard
+  if (token && token.hasCompletedOnboarding && url.pathname.startsWith('/onboarding')) {
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Let it through
   return NextResponse.next()
 }
 

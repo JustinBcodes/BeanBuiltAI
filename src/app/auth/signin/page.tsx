@@ -23,13 +23,7 @@ export default function SignInPage() {
   const error = searchParams.get('error')
   const from = searchParams.get('from') || '/dashboard'
 
-  // If already authenticated, middleware will handle redirect
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      // Let middleware handle the redirect decision based on onboarding status
-      router.push(from)
-    }
-  }, [session, status, router, from])
+  // Middleware handles all redirects - no client-side redirect logic needed
 
   const handleSignIn = async (provider: string) => {
     try {
