@@ -76,22 +76,7 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
       hasNutritionProgress: !!nutritionProgress,
       hasNutritionPlan: !!nutritionPlan
     });
-    
-    // TEST: Add a window click listener to see if ANY clicks are working
-    const testClickHandler = (e: MouseEvent) => {
-      console.log('🔥 WINDOW CLICK DETECTED:', e.target);
-    };
-    window.addEventListener('click', testClickHandler);
-    
-    // TEST: Trigger an alert immediately when component mounts
-    setTimeout(() => {
-      alert(`NutritionCard for ${dayOfWeek} has mounted!`);
-    }, 2000);
-    
-    return () => {
-      window.removeEventListener('click', testClickHandler);
-    };
-  }, [dayOfWeek, toggleMealCompletion, nutritionProgress, nutritionPlan]);
+  }, [dayOfWeek]);
   
   // Get the current week's data directly from state to ensure fresh data
   const currentWeekIndex = nutritionProgress?.currentWeekIndex || 0;
@@ -207,16 +192,7 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
     const handleClick = () => {
-      console.log('🔥🔥🔥 MEAL CLICK HANDLER TRIGGERED! This should appear in console!');
-      alert(`🔥 CLICK DETECTED! Meal: ${meal.name}!`); // Simple test to see if clicks work
-      
-      console.log('🖱️ Meal clicked:', {
-        mealName: meal.name,
-        mealType,
-        mealIdentifier,
-        currentCompleted: meal.completed,
-        isHydrated
-      });
+      console.log('🖱️ Meal clicked:', meal.name);
       
       if (!isHydrated) {
         console.log('❌ Not hydrated yet, ignoring click');
@@ -229,11 +205,8 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     return (
       <div 
         key={meal.name + (snackIndex !== undefined ? snackIndex : '')} 
-        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group hover:bg-red-200 transition-colors bg-blue-50 min-h-[100px] border-2 border-red-500"
+        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group hover:bg-muted/30 transition-colors"
         onClick={handleClick}
-        onMouseEnter={() => console.log('🐭 Mouse entered meal:', meal.name)}
-        onMouseLeave={() => console.log('🐭 Mouse left meal:', meal.name)}
-        style={{ zIndex: 1000, position: 'relative' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

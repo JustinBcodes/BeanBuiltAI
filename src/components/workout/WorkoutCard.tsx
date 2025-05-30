@@ -32,12 +32,6 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
   // Hydration guard
   useEffect(() => {
     setIsHydrated(true)
-    console.log('🏗️ WorkoutCard mounted for', daySchedule.dayOfWeek);
-    
-    // TEST: Trigger an alert when component mounts
-    setTimeout(() => {
-      alert(`WorkoutCard for ${daySchedule.dayOfWeek} has mounted!`);
-    }, 3000);
   }, [])
 
   // Get the current week's data directly from state to ensure fresh data
@@ -161,16 +155,7 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
             <Accordion type="single" collapsible className="space-y-2">
               {workoutDetails.exercises.map((exercise, index) => {
                 const handleExerciseClick = () => {
-                  console.log('🔥🔥🔥 EXERCISE CLICK HANDLER TRIGGERED!');
-                  alert(`🔥 EXERCISE CLICKED! ${exercise.name}!`); // Simple test to see if clicks work
-                  
-                  console.log('🖱️ Exercise clicked:', {
-                    exerciseName: exercise.name,
-                    exerciseIndex: index,
-                    currentCompleted: exercise.completed,
-                    isHydrated,
-                    dayOfWeek: workoutToRender.dayOfWeek
-                  });
+                  console.log('🖱️ Exercise clicked:', exercise.name);
                   
                   if (!isHydrated) {
                     console.log('❌ Not hydrated yet, ignoring exercise click');
