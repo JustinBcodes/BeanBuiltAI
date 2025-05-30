@@ -170,8 +170,17 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
                     return;
                   }
                   
-                  console.log('✅ About to call handleExerciseComplete');
-                  handleExerciseComplete(exercise.name, index);
+                  console.log('✅ About to call toggleExerciseCompletion directly');
+                  
+                  // EMERGENCY FIX: Call store function directly
+                  console.log('🚀 Calling toggleExerciseCompletion directly from store');
+                  toggleExerciseCompletion(workoutToRender.dayOfWeek, exercise.name, index);
+                  
+                  // Show toast directly
+                  toast({
+                    title: "Exercise updated!",
+                    description: `${exercise.name} completion status changed.`,
+                  });
                 };
 
                 return (

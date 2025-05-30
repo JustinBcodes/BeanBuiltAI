@@ -28,6 +28,24 @@ export default function NutritionPage() {
     multiWeekMealPlansLength: nutritionPlan?.multiWeekMealPlans?.length
   });
 
+  // Emergency debugging - test if the page itself can handle clicks
+  useEffect(() => {
+    const testPageClick = () => {
+      console.log('🔥 PAGE CLICK DETECTED - JavaScript events are working!');
+    };
+    
+    window.addEventListener('click', testPageClick);
+    
+    // Test after mount
+    setTimeout(() => {
+      console.log('🧪 Nutrition page mounted, running click test...');
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('click', testPageClick);
+    };
+  }, []);
+
   const handleRegeneratePlans = async () => {
     if (!profile) {
       toast({

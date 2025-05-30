@@ -208,7 +208,16 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
       }
       
       console.log('✅ About to call handleMealComplete');
-      handleMealComplete(mealType, mealIdentifier, meal.completed);
+      
+      // EMERGENCY FIX: Call the store function directly instead of through useCallback
+      console.log('🚀 Calling toggleMealCompletion directly from store');
+      toggleMealCompletion(dayOfWeek, mealType, mealIdentifier);
+      
+      // Show toast directly
+      toast({
+        title: !meal.completed ? "Meal marked complete!" : "Meal marked incomplete.",
+        description: `${dayOfWeek}: ${meal.name}`,
+      });
     };
 
     return (
