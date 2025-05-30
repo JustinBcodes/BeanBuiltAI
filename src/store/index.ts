@@ -636,13 +636,14 @@ export const useStore = create<Store>()(
       toggleExerciseCompletion: (dayOfWeek, exerciseIdentifier, exerciseIndex) => {
         const currentWPlan = get().workoutPlan;
         const currentWProgress = get().workoutProgress;
-        if (!currentWPlan || !currentWProgress || currentWPlan.currentWeekIndex === undefined) return;
+        if (!currentWPlan || !currentWProgress || currentWPlan.currentWeekIndex === undefined) {
+          return;
+        }
 
         const weekIdx = currentWPlan.currentWeekIndex;
 
         // Ensure progress structure exists for the current week
         if (!currentWProgress.weeklySchedule[weekIdx]) {
-            console.error(`Workout progress for week ${weekIdx + 1} not found.`);
             return;
         }
         
@@ -656,14 +657,16 @@ export const useStore = create<Store>()(
                             }
                             return ex;
                         });
+                        
                         // Recalculate if workoutDetails itself is completed
                         const allExercisesCompleted = updatedExercises.every(ex => ex.completed);
+                        
                         return { 
                             ...dayItemProg, 
                             workoutDetails: { 
                                 ...dayItemProg.workoutDetails, 
                                 exercises: updatedExercises,
-                                completed: allExercisesCompleted // Mark workout as completed if all exercises are done
+                                completed: allExercisesCompleted
                             } 
                         };
                     }
@@ -682,34 +685,29 @@ export const useStore = create<Store>()(
                 }
             });
         }
-        
-        // Note: totalWorkouts might need to be week-specific if plans change structure per week
-        // For now, assuming totalWorkouts is from the plan's current week or overall.
-        // If it's overall, this logic is fine. If per week, workoutProgress needs adjustment.
 
         set({ 
             workoutProgress: { 
                 ...currentWProgress, 
                 weeklySchedule: updatedWeeklyScheduleProgress,
-                // completedWorkouts: completedWorkoutsThisWeek, // This needs to be managed carefully if it's a total sum vs per week
-                                                              // For now, let's assume initializeProgress handles overall completed/total counts
             } 
         });
-         // Consider if toggleCompletion should directly update overall completedWorkouts or if initializeProgress does that.
-         // For now, let initializeProgress handle recalculating overall progress stats based on updated weeklySchedule.
-         get().initializeProgressFromPlans(get().workoutPlan, get().nutritionPlan); 
+        
+        // Reinitialize progress to recalculate overall stats
+        get().initializeProgressFromPlans(get().workoutPlan, get().nutritionPlan);
       },
 
-      toggleMealCompletion: (dayOfWeek, mealTypeToToggle, mealIdentifier) => { // mealIdentifier can be meal name or index for snacks
+      toggleMealCompletion: (dayOfWeek, mealTypeToToggle, mealIdentifier) => {
         const currentNPlan = get().nutritionPlan;
         const currentNProgress = get().nutritionProgress;
 
-        if (!currentNPlan || !currentNProgress || currentNPlan.currentWeekIndex === undefined) return;
+        if (!currentNPlan || !currentNProgress || currentNPlan.currentWeekIndex === undefined) {
+          return;
+        }
         
         const weekIdx = currentNPlan.currentWeekIndex;
 
         if (!currentNProgress.weeklyMealProgress[weekIdx]) {
-            console.error(`Nutrition progress for week ${weekIdx + 1} not found.`);
             return;
         }
 
@@ -719,9 +717,7 @@ export const useStore = create<Store>()(
                     if (dayProg.dayOfWeek === dayOfWeek && dayProg.meals) {
                         const updatedMeals = dayProg.meals.map((meal, index) => {
                              // For snacks, mealIdentifier is index, for others it's name.
-                             // This logic might need refinement based on how mealIdentifier is consistently passed.
-                             // Assuming mealIdentifier is name for Breakfast, Lunch, Dinner and index for snacks for now.
-                            const isTargetMeal = typeof mealIdentifier === 'number' 
+                             const isTargetMeal = typeof mealIdentifier === 'number' 
                                 ? meal.mealType.toLowerCase().includes('snack') && index === mealIdentifier
                                 : meal.name === mealIdentifier && meal.mealType === mealTypeToToggle;
 
@@ -730,6 +726,7 @@ export const useStore = create<Store>()(
                             }
                             return meal;
                         });
+                        
                         // Recalculate logged calories/macros for the day
                         let loggedCalories = 0;
                         let loggedProtein = 0;
@@ -1169,6 +1166,14 @@ export const useStore = create<Store>()(
     }),
     {
       name: 'beanbuilt-ai-store',
+      partialize: (state) => ({
+        profile: state.profile,
+        workoutPlan: state.workoutPlan,
+        nutritionPlan: state.nutritionPlan,
+        workoutProgress: state.workoutProgress,
+        nutritionProgress: state.nutritionProgress,
+        weightProgress: state.weightProgress,
+      }),
     }
   )
 ) 

@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { MealItem, NutritionIngredient } from '@/types/plan-types'; // Use types from plan-types
+import { useEffect } from 'react'
 
 // The structure of dailyMeals received as prop from nutrition/page.tsx
 // which comes from store's nutritionProgress.weeklySchedule[n].meals
@@ -32,10 +33,23 @@ interface NutritionCardProps {
 
 export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
   const { toast } = useToast();
-  const { toggleMealCompletion, /* customizeMeal */ } = useStore(state => ({
-    toggleMealCompletion: state.toggleMealCompletion,
-    // customizeMeal: state.customizeMeal, // Future: for meal editing
-  }));
+  
+  // Subscribe to the actual state to ensure re-renders
+  const toggleMealCompletion = useStore(state => state.toggleMealCompletion);
+  const nutritionProgress = useStore(state => state.nutritionProgress);
+  
+  // Get the current week's data directly from state to ensure fresh data
+  const currentWeekIndex = nutritionProgress?.currentWeekIndex || 0;
+  const currentWeekProgress = nutritionProgress?.weeklyMealProgress?.[currentWeekIndex];
+  const dayData = currentWeekProgress?.find(day => day.dayOfWeek === dayOfWeek);
+  
+  // Use state data if available, otherwise fall back to props
+  const mealsToRender = dayData ? {
+    breakfast: dayData.meals?.find((meal: any) => meal.mealType === 'breakfast') || null,
+    lunch: dayData.meals?.find((meal: any) => meal.mealType === 'lunch') || null,
+    dinner: dayData.meals?.find((meal: any) => meal.mealType === 'dinner') || null,
+    snacks: dayData.meals?.filter((meal: any) => meal.mealType === 'snacks') || []
+  } : dailyMeals;
 
   const handleMealComplete = (
     mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks',
@@ -43,6 +57,7 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     currentStatus: boolean
   ) => {
     toggleMealCompletion(dayOfWeek, mealType, mealNameOrSnackIndex);
+    
     const mealToLog = typeof mealNameOrSnackIndex === 'string' ? mealNameOrSnackIndex : `${mealType} #${mealNameOrSnackIndex + 1}`;
     toast({
       title: !currentStatus ? "Meal marked complete!" : "Meal marked incomplete.",
@@ -103,8 +118,11 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
             <Checkbox
               id={`${dayOfWeek}-${meal.name}-${snackIndex}`}
               checked={meal.completed}
-              onCheckedChange={() => handleMealComplete(mealType, mealIdentifier, meal.completed)}
+              onCheckedChange={(checked) => {
+                handleMealComplete(mealType, mealIdentifier, meal.completed);
+              }}
               aria-label={`Mark ${meal.name} as complete`}
+              className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
             />
           </div>
         </div>
@@ -138,19 +156,19 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
         <h3 className="text-lg font-semibold text-center text-card-foreground">{dayOfWeek}</h3>
       </div>
       <div className="p-4 md:p-5 space-y-4 flex-grow overflow-y-auto">
-        {renderMeal(dailyMeals.breakfast, 'breakfast')}
-        {renderMeal(dailyMeals.lunch, 'lunch')}
-        {renderMeal(dailyMeals.dinner, 'dinner')}
+        {renderMeal(mealsToRender.breakfast, 'breakfast')}
+        {renderMeal(mealsToRender.lunch, 'lunch')}
+        {renderMeal(mealsToRender.dinner, 'dinner')}
         
-        {dailyMeals.snacks && dailyMeals.snacks.length > 0 && (
+        {mealsToRender.snacks && mealsToRender.snacks.length > 0 && (
           <div className="space-y-3 pt-4 border-t border-border">
             <h4 className="font-semibold text-base text-muted-foreground pl-1">Snacks</h4>
-            {dailyMeals.snacks.map((snack, index) => (
+            {mealsToRender.snacks.map((snack, index) => (
                 renderMeal(snack, 'snacks', index)
             ))}
           </div>
         )}
-        {(!dailyMeals.breakfast && !dailyMeals.lunch && !dailyMeals.dinner && (!dailyMeals.snacks || dailyMeals.snacks.length === 0)) &&
+        {(!mealsToRender.breakfast && !mealsToRender.lunch && !mealsToRender.dinner && (!mealsToRender.snacks || mealsToRender.snacks.length === 0)) &&
             <p className="text-sm text-muted-foreground text-center py-8">No meals specified for {dayOfWeek}.</p>        
         }
       </div>

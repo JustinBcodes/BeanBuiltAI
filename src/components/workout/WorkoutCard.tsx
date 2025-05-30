@@ -27,13 +27,22 @@ interface WorkoutCardProps {
 
 export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
   const { toast } = useToast()
-  const { toggleExerciseCompletion } = useStore()
+  const toggleExerciseCompletion = useStore(state => state.toggleExerciseCompletion)
+  const workoutProgress = useStore(state => state.workoutProgress)
   const [isExpanded, setIsExpanded] = useState(false)
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null)
 
+  // Get the current week's data directly from state to ensure fresh data
+  const currentWeekIndex = workoutProgress?.currentWeekIndex || 0;
+  const currentWeekProgress = workoutProgress?.weeklySchedule?.[currentWeekIndex];
+  const dayData = currentWeekProgress?.find(day => day.dayOfWeek === daySchedule.dayOfWeek);
+  
+  // Use state data if available, otherwise fall back to props
+  const workoutToRender = dayData || daySchedule;
+
   const handleExerciseComplete = (exerciseName: string) => {
-    if (daySchedule.workoutDetails) {
-      toggleExerciseCompletion(daySchedule.dayOfWeek, exerciseName)
+    if (workoutToRender.workoutDetails) {
+      toggleExerciseCompletion(workoutToRender.dayOfWeek, exerciseName)
     }
   }
 
@@ -52,11 +61,11 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
     }
   }
 
-  if (!daySchedule) {
+  if (!workoutToRender) {
     return null
   }
 
-  const { dayOfWeek, isRestDay, workoutDetails } = daySchedule
+  const { dayOfWeek, isRestDay, workoutDetails } = workoutToRender
 
   return (
     <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -110,8 +119,12 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
                       <Button 
                         variant={exercise.completed ? "secondary" : "default"}
                         size="sm" 
-                        className="w-full mt-2 text-xs" 
-                        onClick={() => handleExerciseComplete(exercise.name)}
+                        className="w-full mt-2 text-xs cursor-pointer" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleExerciseComplete(exercise.name);
+                        }}
                       >
                         {exercise.completed ? 'Mark Incomplete' : 'Mark Complete'}
                       </Button>
