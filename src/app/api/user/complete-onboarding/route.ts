@@ -7,6 +7,35 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+// Helper function to generate plans for user if they don't exist
+async function generatePlansForUser(userId: string) {
+  console.log('🔄 Generating plans for user:', userId)
+  
+  try {
+    // Call the plans generation API internally
+    const response = await fetch(`${process.env.NEXTAUTH_URL}/api/plans/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Pass the user context for internal API call
+        'x-user-id': userId,
+      },
+    })
+
+    if (!response.ok) {
+      console.error('❌ Failed to generate plans:', response.status, response.statusText)
+      return false
+    }
+
+    const result = await response.json()
+    console.log('✅ Plans generated successfully:', result.message)
+    return true
+  } catch (error) {
+    console.error('❌ Error generating plans:', error)
+    return false
+  }
+}
+
 // POST /api/user/complete-onboarding - Mark user as having completed onboarding
 export async function POST() {
   try {
@@ -25,7 +54,49 @@ export async function POST() {
 
     console.log('✅ Valid session found for:', session.user.email)
 
-    // Update user's onboarding status in database
+    // Get user ID for plan checking
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    })
+
+    if (!user) {
+      console.log('❌ User not found in database')
+      return NextResponse.json(
+        { error: 'User not found in database' },
+        { status: 404 }
+      )
+    }
+
+    const userId = user.id
+
+    // 🔧 1. Check if plans already exist in DB before regenerating
+    console.log('🔍 Checking for existing plans...')
+    const [existingWorkout, existingNutrition] = await Promise.all([
+      prisma.workoutPlan.findFirst({ where: { userId } }),
+      prisma.nutritionPlan.findFirst({ where: { userId } })
+    ])
+
+    console.log('📊 Existing plans status:', {
+      hasWorkoutPlan: !!existingWorkout,
+      hasNutritionPlan: !!existingNutrition,
+      workoutPlanId: existingWorkout?.id,
+      nutritionPlanId: existingNutrition?.id
+    })
+
+    // Only generate plans if they don't exist
+    if (!existingWorkout || !existingNutrition) {
+      console.log('🚀 Missing plans detected, generating...')
+      const plansGenerated = await generatePlansForUser(userId)
+      
+      if (!plansGenerated) {
+        console.warn('⚠️ Plan generation failed, but continuing with onboarding completion')
+      }
+    } else {
+      console.log('✅ Plans already exist, skipping generation')
+    }
+
+    // Update user's onboarding status in database using upsert to avoid conflicts
     const updatedUser = await prisma.user.update({
       where: {
         email: session.user.email,

@@ -11,10 +11,11 @@ interface StoreProviderProps {
 
 function ProfileLoader() {
   const { data: session, status } = useSession()
-  const { profile, setProfile } = useStore()
+  const { profile, setProfile, setWorkoutPlan, setNutritionPlan } = useStore()
   const workoutPlan = useStore(state => state.workoutPlan)
   const nutritionPlan = useStore(state => state.nutritionPlan)
   const generatePlans = useStore(state => state.generatePlans)
+  const initializeProgressFromPlans = useStore(state => state.initializeProgressFromPlans)
   const [isHydrated, setIsHydrated] = useState(false)
   const hasInitialized = useRef(false)
   const lastSessionId = useRef<string | null>(null)
@@ -56,7 +57,7 @@ function ProfileLoader() {
     }
   }, [session?.user?.id, session?.user?.hasCompletedOnboarding, status])
 
-  // Immediately create profile from session if authenticated and no profile exists
+  // 🧠 3. Zustand + DB Sync / Hydration Strategy - Hydrate from DB instead of regenerating
   useEffect(() => {
     // Enhanced loading checks for mobile/incognito compatibility
     if (!isHydrated || status === 'loading' || hasInitialized.current) {
@@ -87,11 +88,13 @@ function ProfileLoader() {
       console.log(`✅ StoreProvider: Profile created with onboarding status: ${newProfile.hasCompletedOnboarding}`)
       setProfile(newProfile)
 
-      // Enhanced async profile fetching with better error handling
-      const fetchLatestProfile = async () => {
+      // Enhanced async profile and plans fetching with DB hydration
+      const hydrateFromDatabase = async () => {
         try {
-          console.log(`🔄 StoreProvider: Fetching latest profile data for user ${session.user.id}`)
-          const response = await fetch('/api/user/profile', {
+          console.log(`🔄 StoreProvider: Hydrating from database for user ${session.user.id}`)
+          
+          // Fetch profile data
+          const profileResponse = await fetch('/api/user/profile', {
             method: 'GET',
             headers: {
               'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -100,11 +103,11 @@ function ProfileLoader() {
             },
           })
 
-          if (!response.ok) {
-            throw new Error(`Profile fetch failed: ${response.status}`)
+          if (!profileResponse.ok) {
+            throw new Error(`Profile fetch failed: ${profileResponse.status}`)
           }
 
-          const fetchedProfile = await response.json()
+          const fetchedProfile = await profileResponse.json()
           console.log(`✅ StoreProvider: Latest profile fetched`, {
             hasCompletedOnboarding: fetchedProfile.hasCompletedOnboarding,
             profileId: fetchedProfile.id
@@ -113,38 +116,100 @@ function ProfileLoader() {
           // Update profile with latest data
           setProfile(fetchedProfile)
 
-          // Check if we need to generate plans
-          const hasValidWorkoutPlan = workoutPlan && 
-                                      Array.isArray(workoutPlan.multiWeekSchedules) && 
-                                      workoutPlan.multiWeekSchedules.length > 0
-
-          const hasValidNutritionPlan = nutritionPlan && 
-                                        Array.isArray(nutritionPlan.multiWeekMealPlans) && 
-                                        nutritionPlan.multiWeekMealPlans.length > 0
-
-          // Only generate plans if user has completed onboarding and plans are missing
-          if (fetchedProfile.hasCompletedOnboarding && (!hasValidWorkoutPlan || !hasValidNutritionPlan)) {
-            console.log(`🔄 StoreProvider: Generating missing plans for completed onboarding user`)
-            await generatePlans(fetchedProfile)
+          // 🧠 Hydrate plans from DB instead of regenerating
+          if (fetchedProfile.hasCompletedOnboarding) {
+            console.log(`🔄 StoreProvider: Fetching existing plans from database...`)
             
-            // Verify plans were generated
-            const finalWorkoutPlan = useStore.getState().workoutPlan;
-            const finalNutritionPlan = useStore.getState().nutritionPlan;
-            console.log(`✅ StoreProvider: Plan generation completed`, {
-              workoutPlanValid: !!(finalWorkoutPlan && Array.isArray(finalWorkoutPlan.multiWeekSchedules)),
-              nutritionPlanValid: !!(finalNutritionPlan && Array.isArray(finalNutritionPlan.multiWeekMealPlans))
-            })
+            try {
+              // Fetch existing workout plan from DB
+              const workoutResponse = await fetch('/api/user/workout/plan', {
+                method: 'GET',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache',
+                  'Expires': '0',
+                },
+              })
+
+              // Fetch existing nutrition plan from DB
+              const nutritionResponse = await fetch('/api/user/nutrition/plan', {
+                method: 'GET',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache',
+                  'Expires': '0',
+                },
+              })
+
+              let workoutPlanFromDB = null
+              let nutritionPlanFromDB = null
+
+              if (workoutResponse.ok) {
+                workoutPlanFromDB = await workoutResponse.json()
+                console.log(`✅ StoreProvider: Workout plan loaded from DB:`, {
+                  planName: workoutPlanFromDB?.planName,
+                  hasSchedules: !!workoutPlanFromDB?.multiWeekSchedules
+                })
+              }
+
+              if (nutritionResponse.ok) {
+                nutritionPlanFromDB = await nutritionResponse.json()
+                console.log(`✅ StoreProvider: Nutrition plan loaded from DB:`, {
+                  planName: nutritionPlanFromDB?.planName,
+                  hasMealPlans: !!nutritionPlanFromDB?.multiWeekMealPlans
+                })
+              }
+
+              // Set plans from DB if they exist
+              if (workoutPlanFromDB) {
+                setWorkoutPlan(workoutPlanFromDB)
+              }
+              if (nutritionPlanFromDB) {
+                setNutritionPlan(nutritionPlanFromDB)
+              }
+
+              // Initialize progress from the loaded plans
+              if (workoutPlanFromDB || nutritionPlanFromDB) {
+                console.log(`🔄 StoreProvider: Initializing progress from DB plans...`)
+                initializeProgressFromPlans(workoutPlanFromDB, nutritionPlanFromDB)
+              }
+
+              // Only generate plans if they're missing from DB
+              if (!workoutPlanFromDB || !nutritionPlanFromDB) {
+                console.log(`🔄 StoreProvider: Some plans missing from DB, generating...`, {
+                  needsWorkout: !workoutPlanFromDB,
+                  needsNutrition: !nutritionPlanFromDB
+                })
+                await generatePlans(fetchedProfile)
+                
+                // Verify plans were generated
+                const finalWorkoutPlan = useStore.getState().workoutPlan;
+                const finalNutritionPlan = useStore.getState().nutritionPlan;
+                console.log(`✅ StoreProvider: Plan generation completed`, {
+                  workoutPlanValid: !!(finalWorkoutPlan && Array.isArray(finalWorkoutPlan.multiWeekSchedules)),
+                  nutritionPlanValid: !!(finalNutritionPlan && Array.isArray(finalNutritionPlan.multiWeekMealPlans))
+                })
+              } else {
+                console.log(`✅ StoreProvider: All plans loaded from DB, no generation needed`)
+              }
+
+            } catch (planError) {
+              console.error("🚨 StoreProvider: Error fetching plans from DB:", planError)
+              // Fallback to generating plans if DB fetch fails
+              console.log(`🔄 StoreProvider: Falling back to plan generation...`)
+              await generatePlans(fetchedProfile)
+            }
           }
         } catch (error) {
-          console.error("🚨 StoreProvider: Error fetching latest profile:", error)
+          console.error("🚨 StoreProvider: Error hydrating from database:", error)
           // Keep the session-based profile if API fails - important for offline/poor connectivity
         }
       }
       
-      // Fetch latest profile data asynchronously
-      fetchLatestProfile()
+      // Hydrate from database asynchronously
+      hydrateFromDatabase()
     }
-  }, [isHydrated, status, session, profile, setProfile, generatePlans, workoutPlan, nutritionPlan])
+  }, [isHydrated, status, session, profile, setProfile, setWorkoutPlan, setNutritionPlan, generatePlans, initializeProgressFromPlans])
 
   // Enhanced loading state handling for mobile/incognito browsers
   if (status === 'loading') {

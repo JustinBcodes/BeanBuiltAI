@@ -4,6 +4,23 @@ import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export default async function middleware(request: NextRequestWithAuth) {
+  const url = request.nextUrl.clone()
+  
+  console.log(`🔄 Middleware: ${url.pathname}`)
+
+  // 🔒 1. Allow access to auth-related pages always (prevents infinite redirects)
+  if (url.pathname.startsWith('/auth')) {
+    console.log(`✅ Auth page access allowed: ${url.pathname}`)
+    return NextResponse.next()
+  }
+
+  // API routes (except auth) should be handled separately
+  if (url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth')) {
+    console.log(`✅ API route access allowed: ${url.pathname}`)
+    return NextResponse.next()
+  }
+
+  // 🔒 2. Fetch token with enhanced configuration
   const token = await getToken({ 
     req: request, 
     secret: process.env.NEXTAUTH_SECRET,
@@ -14,60 +31,47 @@ export default async function middleware(request: NextRequestWithAuth) {
       : 'next-auth.session-token'
   })
   
-  const url = request.nextUrl.clone()
-  
-  console.log(`🔄 Middleware: ${url.pathname} | Token: ${!!token} | Onboarding: ${token?.hasCompletedOnboarding}`)
+  console.log(`🔍 Middleware token check:`, {
+    pathname: url.pathname,
+    hasToken: !!token,
+    tokenId: token?.id,
+    hasCompletedOnboarding: token?.hasCompletedOnboarding,
+    userAgent: request.headers.get('user-agent')?.substring(0, 50)
+  })
 
-  // Public routes that don't require authentication
-  const publicRoutes = ['/auth/signin', '/auth/error', '/api/auth']
-  const isPublicRoute = publicRoutes.some(route => url.pathname.startsWith(route))
-
-  // API routes (except auth) should be handled separately
-  if (url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth')) {
-    console.log(`✓ API route, allowing: ${url.pathname}`)
-    return NextResponse.next()
-  }
-
-  // If not authenticated and trying to access protected route
-  if (!token && !isPublicRoute) {
-    console.log(`🚀 Not authenticated, redirecting ${url.pathname} → /auth/signin`)
-    url.pathname = '/auth/signin'
-    // Add the original path as a query parameter for post-login redirect
-    url.searchParams.set('from', request.nextUrl.pathname)
-    return NextResponse.redirect(url)
-  }
-
-  // If not authenticated but on public route, allow
-  if (!token && isPublicRoute) {
-    console.log(`✓ Public route access: ${url.pathname}`)
-    return NextResponse.next()
-  }
-
-  // If authenticated but on auth pages, redirect based on onboarding status
-  if (token && url.pathname.startsWith('/auth')) {
-    if (token.hasCompletedOnboarding) {
-      console.log(`✅ Auth page with completed onboarding → /dashboard`)
-      url.pathname = '/dashboard'
-    } else {
-      console.log(`🚀 Auth page without completed onboarding → /onboarding`)
-      url.pathname = '/onboarding'
+  // 🔒 3. If no token, redirect to sign-in (but not if already on sign-in)
+  if (!token) {
+    if (url.pathname !== '/auth/signin') {
+      console.log(`🚀 No token, redirecting ${url.pathname} → /auth/signin`)
+      url.pathname = '/auth/signin'
+      // Add the original path as a query parameter for post-login redirect
+      url.searchParams.set('from', request.nextUrl.pathname)
+      return NextResponse.redirect(url)
     }
-    // Clear any redirect parameters
-    url.searchParams.delete('from')
-    return NextResponse.redirect(url)
+    // Already on sign-in page, allow access
+    console.log(`✅ No token but on sign-in page, allowing access`)
+    return NextResponse.next()
   }
 
-  // If authenticated but onboarding not complete, force to onboarding (except for onboarding routes)
-  if (token && !token.hasCompletedOnboarding && !url.pathname.startsWith('/onboarding') && !url.pathname.startsWith('/auth')) {
-    console.log(`🚀 Not completed onboarding, redirecting ${url.pathname} → /onboarding`)
+  // 🔒 4. Allow onboarding access if onboarding is incomplete
+  if (!token.hasCompletedOnboarding && url.pathname.startsWith('/onboarding')) {
+    console.log(`✅ Incomplete onboarding, allowing onboarding access: ${url.pathname}`)
+    return NextResponse.next()
+  }
+
+  // 🔒 5. Force to onboarding if not completed (except for onboarding routes)
+  if (!token.hasCompletedOnboarding && !url.pathname.startsWith('/onboarding')) {
+    console.log(`🚀 Onboarding incomplete, redirecting ${url.pathname} → /onboarding`)
     url.pathname = '/onboarding'
+    url.searchParams.delete('from') // Clear any redirect parameters
     return NextResponse.redirect(url)
   }
 
-  // If authenticated, onboarding complete, but trying to access onboarding, redirect to dashboard
-  if (token && token.hasCompletedOnboarding && url.pathname.startsWith('/onboarding')) {
-    console.log(`✅ Completed onboarding, redirecting /onboarding → /dashboard`)
+  // 🔒 6. Redirect from onboarding if already completed
+  if (token.hasCompletedOnboarding && url.pathname.startsWith('/onboarding')) {
+    console.log(`✅ Onboarding completed, redirecting /onboarding → /dashboard`)
     url.pathname = '/dashboard'
+    url.searchParams.delete('from') // Clear any redirect parameters
     return NextResponse.redirect(url)
   }
 
@@ -81,7 +85,7 @@ export default async function middleware(request: NextRequestWithAuth) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   }
 
-  console.log(`✓ Allowing access to ${url.pathname}`)
+  console.log(`✅ Allowing access to ${url.pathname}`)
   return response
 }
 
