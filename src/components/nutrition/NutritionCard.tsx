@@ -71,6 +71,11 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
   // Hydration guard
   useEffect(() => {
     setIsHydrated(true);
+    console.log('🏗️ NutritionCard mounted for', dayOfWeek, {
+      hasToggleFunction: !!toggleMealCompletion,
+      hasNutritionProgress: !!nutritionProgress,
+      hasNutritionPlan: !!nutritionPlan
+    });
   }, []);
   
   // Get the current week's data directly from state to ensure fresh data
@@ -187,6 +192,8 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
     const handleClick = () => {
+      alert(`Clicked on ${meal.name}!`); // Simple test to see if clicks work
+      
       console.log('🖱️ Meal clicked:', {
         mealName: meal.name,
         mealType,
@@ -284,6 +291,14 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
       </Card>
     );
   }
+
+  console.log('🎯 About to render NutritionCard for', dayOfWeek, {
+    breakfast: !!mealsToRender.breakfast,
+    lunch: !!mealsToRender.lunch, 
+    dinner: !!mealsToRender.dinner,
+    snacksCount: mealsToRender.snacks.length,
+    hasAnyMeals: !!(mealsToRender.breakfast || mealsToRender.lunch || mealsToRender.dinner || mealsToRender.snacks.length > 0)
+  });
 
   return (
     <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">

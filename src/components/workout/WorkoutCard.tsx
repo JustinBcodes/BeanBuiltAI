@@ -155,6 +155,8 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
             <Accordion type="single" collapsible className="space-y-2">
               {workoutDetails.exercises.map((exercise, index) => {
                 const handleExerciseClick = () => {
+                  alert(`Clicked on ${exercise.name}!`); // Simple test to see if clicks work
+                  
                   console.log('🖱️ Exercise clicked:', {
                     exerciseName: exercise.name,
                     exerciseIndex: index,

@@ -18,6 +18,16 @@ export default function NutritionPage() {
   const { toast } = useToast()
   const [isRegenerating, setIsRegenerating] = useState(false)
 
+  console.log('🍎 NutritionPage Debug:', {
+    hasProfile: !!profile,
+    hasCompletedOnboarding: profile?.hasCompletedOnboarding,
+    hasNutritionProgress: !!nutritionProgress,
+    hasNutritionPlan: !!nutritionPlan,
+    currentWeekIndex: nutritionProgress?.currentWeekIndex,
+    weeklyMealProgressLength: nutritionProgress?.weeklyMealProgress?.length,
+    multiWeekMealPlansLength: nutritionPlan?.multiWeekMealPlans?.length
+  });
+
   const handleRegeneratePlans = async () => {
     if (!profile) {
       toast({
