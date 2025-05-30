@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
 import { useStore } from '@/store'
 import { Clock, Target, Edit3 } from 'lucide-react'
@@ -176,13 +175,18 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
                               e.stopPropagation();
                               handleExerciseClick();
                             }}
-                            className="cursor-pointer flex items-center justify-center h-6 w-6 rounded border border-input transition-colors hover:bg-accent"
+                            className={`cursor-pointer flex items-center justify-center h-5 w-5 rounded border-2 transition-colors ${
+                              exercise.completed 
+                                ? 'bg-green-500 border-green-500' 
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
                             aria-label={`Mark ${exercise.name} as ${exercise.completed ? 'incomplete' : 'complete'}`}
                           >
-                            <Checkbox
-                              checked={exercise.completed || false}
-                              className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 pointer-events-none"
-                            />
+                            {exercise.completed && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
                           </div>
                           <span className={cn(
                             "font-medium text-sm text-left",

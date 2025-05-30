@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
 import { useStore } from '@/store'
 import { Clock, Utensils, Info, Edit3 } from 'lucide-react'
@@ -210,11 +209,18 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center h-6 w-6 rounded border border-input transition-colors">
-              <Checkbox
-                checked={meal.completed}
-                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary pointer-events-none"
-              />
+            <div 
+              className={`flex items-center justify-center h-5 w-5 rounded border-2 transition-colors ${
+                meal.completed 
+                  ? 'bg-green-500 border-green-500' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              {meal.completed && (
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </div>
             <Utensils className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <h4 className="font-semibold text-base group-hover:text-primary transition-colors">
