@@ -190,6 +190,11 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     // For snacks, use the index as identifier; for other meals, use the meal name
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
+    const simpleTestClick = () => {
+      alert('🚨 SIMPLE CLICK WORKS!');
+      console.log('🚨 SIMPLE CLICK HANDLER TRIGGERED!');
+    };
+
     const handleClick = () => {
       console.log('🔥 CLICK DETECTED ON MEAL CARD!');
       console.log('🖱️ Meal clicked:', meal.name);
@@ -226,6 +231,30 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
         className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group hover:bg-muted/30 transition-colors"
         onClick={handleClick}
       >
+        {/* EMERGENCY SIMPLE TEST */}
+        <div className="flex gap-2 mb-2">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              simpleTestClick();
+            }}
+            className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+          >
+            SIMPLE TEST
+          </button>
+          
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              alert('DIRECT BUTTON WORKS!');
+              console.log('🔥 Direct button clicked');
+            }}
+            className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+          >
+            DIRECT CLICK
+          </button>
+        </div>
+        
         {/* TEST BUTTON TO VERIFY CLICKS WORK */}
         <button 
           onClick={(e) => {
