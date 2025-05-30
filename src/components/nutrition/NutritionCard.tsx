@@ -85,32 +85,63 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     ? currentWeekPlan[dayKey as keyof typeof currentWeekPlan] 
     : null;
 
-  // Create complete meal items by combining progress data with original meal data
-  const mealsToRender = dayData ? {
-    breakfast: (() => {
+  console.log('🔍 NutritionCard Debug:', {
+    dayOfWeek,
+    currentWeekIndex,
+    dayData: dayData?.meals?.length,
+    originalDayPlan: originalDayPlan?.meals?.length,
+    hasMeals: !!originalDayPlan?.meals
+  });
+
+  // Always reconstruct complete meal data from store - ignore the incomplete dailyMeals prop
+  const mealsToRender = (() => {
+    if (!dayData || !originalDayPlan) {
+      console.log('❌ Missing dayData or originalDayPlan for', dayOfWeek);
+      return {
+        breakfast: null,
+        lunch: null,
+        dinner: null,
+        snacks: []
+      };
+    }
+
+    const breakfast = (() => {
       const progressMeal = dayData.meals?.find((meal: any) => meal.mealType === 'breakfast');
-      const originalMeal = originalDayPlan?.meals?.find(m => m.mealType === 'breakfast');
-      return createCompleteMealItem(progressMeal, originalMeal);
-    })(),
-    lunch: (() => {
+      const originalMeal = originalDayPlan.meals?.find(m => m.mealType === 'breakfast');
+      const result = createCompleteMealItem(progressMeal, originalMeal);
+      console.log('🥞 Breakfast:', { progressMeal: !!progressMeal, originalMeal: !!originalMeal, result: !!result, completed: result?.completed });
+      return result;
+    })();
+    
+    const lunch = (() => {
       const progressMeal = dayData.meals?.find((meal: any) => meal.mealType === 'lunch');
-      const originalMeal = originalDayPlan?.meals?.find(m => m.mealType === 'lunch');
-      return createCompleteMealItem(progressMeal, originalMeal);
-    })(),
-    dinner: (() => {
+      const originalMeal = originalDayPlan.meals?.find(m => m.mealType === 'lunch');
+      const result = createCompleteMealItem(progressMeal, originalMeal);
+      console.log('🥗 Lunch:', { progressMeal: !!progressMeal, originalMeal: !!originalMeal, result: !!result, completed: result?.completed });
+      return result;
+    })();
+    
+    const dinner = (() => {
       const progressMeal = dayData.meals?.find((meal: any) => meal.mealType === 'dinner');
-      const originalMeal = originalDayPlan?.meals?.find(m => m.mealType === 'dinner');
-      return createCompleteMealItem(progressMeal, originalMeal);
-    })(),
-    snacks: (() => {
+      const originalMeal = originalDayPlan.meals?.find(m => m.mealType === 'dinner');
+      const result = createCompleteMealItem(progressMeal, originalMeal);
+      console.log('🍽️ Dinner:', { progressMeal: !!progressMeal, originalMeal: !!originalMeal, result: !!result, completed: result?.completed });
+      return result;
+    })();
+    
+    const snacks = (() => {
       const progressSnacks = dayData.meals?.filter((meal: any) => meal.mealType === 'snacks') || [];
-      const originalSnacks = originalDayPlan?.meals?.filter(m => m.mealType === 'snacks') || [];
-      return progressSnacks.map((progressSnack: any, index: number) => {
+      const originalSnacks = originalDayPlan.meals?.filter(m => m.mealType === 'snacks') || [];
+      const results = progressSnacks.map((progressSnack: any, index: number) => {
         const originalSnack = originalSnacks[index];
         return createCompleteMealItem(progressSnack, originalSnack);
       }).filter(Boolean) as CompletedMealItem[];
-    })()
-  } : dailyMeals;
+      console.log('🍎 Snacks:', { progressCount: progressSnacks.length, originalCount: originalSnacks.length, resultCount: results.length });
+      return results;
+    })();
+
+    return { breakfast, lunch, dinner, snacks };
+  })();
 
   // Memoized toggle handler to prevent unnecessary re-renders
   const handleMealComplete = useCallback((
@@ -155,14 +186,37 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     // For snacks, use the index as identifier; for other meals, use the meal name
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
+    const handleClick = () => {
+      console.log('🖱️ Meal clicked:', {
+        mealName: meal.name,
+        mealType,
+        mealIdentifier,
+        currentCompleted: meal.completed,
+        isHydrated
+      });
+      
+      if (!isHydrated) {
+        console.log('❌ Not hydrated yet, ignoring click');
+        return;
+      }
+      
+      handleMealComplete(mealType, mealIdentifier, meal.completed);
+    };
+
     return (
       <div 
         key={meal.name + (snackIndex !== undefined ? snackIndex : '')} 
-        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group"
-        onClick={() => handleMealComplete(mealType, mealIdentifier, meal.completed)}
+        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group hover:bg-muted/30 transition-colors"
+        onClick={handleClick}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center h-6 w-6 rounded border border-input transition-colors">
+              <Checkbox
+                checked={meal.completed}
+                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary pointer-events-none"
+              />
+            </div>
             <Utensils className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <h4 className="font-semibold text-base group-hover:text-primary transition-colors">
               {meal.name} <span className="text-xs text-muted-foreground">({mealType.charAt(0).toUpperCase() + mealType.slice(1)}{snackIndex !== undefined ? ` ${snackIndex+1}` : ''})</span>
@@ -183,26 +237,10 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
               </TooltipProvider>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {/* <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCustomize(mealType, meal, snackIndex)}> 
-              <Edit3 className="h-4 w-4 text-muted-foreground hover:text-primary" />
-            </Button> */} 
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!isHydrated}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMealComplete(mealType, mealIdentifier, meal.completed);
-              }}
-              className="h-8 w-8 p-0"
-              aria-label={`Mark ${meal.name} as ${meal.completed ? 'incomplete' : 'complete'}`}
-            >
-              <Checkbox
-                checked={meal.completed}
-                className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-              />
-            </Button>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className={`px-2 py-1 rounded text-xs font-medium ${meal.completed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {meal.completed ? 'Completed' : 'Pending'}
+            </span>
           </div>
         </div>
 

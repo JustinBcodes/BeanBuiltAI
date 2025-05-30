@@ -153,49 +153,71 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
         <div className="space-y-3">
           {workoutDetails.exercises && workoutDetails.exercises.length > 0 ? (
             <Accordion type="single" collapsible className="space-y-2">
-              {workoutDetails.exercises.map((exercise, index) => (
-                <AccordionItem value={`exercise-${index}`} key={exercise.name + index} className="border bg-background rounded-md shadow-sm hover:shadow-md transition-shadow">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-3">
-                        <div
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleExerciseComplete(exercise.name, index);
-                          }}
-                          className="cursor-pointer flex items-center justify-center h-6 w-6 rounded border border-input transition-colors hover:bg-accent"
-                          aria-label={`Mark ${exercise.name} as ${exercise.completed ? 'incomplete' : 'complete'}`}
-                        >
-                          <Checkbox
-                            checked={exercise.completed || false}
-                            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 pointer-events-none"
-                          />
-                        </div>
-                        <span className={cn(
-                          "font-medium text-sm text-left",
-                          exercise.completed ? "line-through text-gray-500" : "text-gray-800"
-                        )}>
-                          {exercise.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{exercise.sets} sets</span>
-                        <span>•</span>
-                        <span>{exercise.reps}</span>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
+              {workoutDetails.exercises.map((exercise, index) => {
+                const handleExerciseClick = () => {
+                  console.log('🖱️ Exercise clicked:', {
+                    exerciseName: exercise.name,
+                    exerciseIndex: index,
+                    currentCompleted: exercise.completed,
+                    isHydrated,
+                    dayOfWeek: workoutToRender.dayOfWeek
+                  });
+                  
+                  if (!isHydrated) {
+                    console.log('❌ Not hydrated yet, ignoring exercise click');
+                    return;
+                  }
+                  
+                  handleExerciseComplete(exercise.name, index);
+                };
 
-                  <AccordionContent className="px-4 pt-2 pb-3 space-y-2 border-t border-border">
-                    <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-                      <span>Rest: {exercise.rest}</span>
-                      {exercise.equipment && <span>Equipment: {exercise.equipment}</span>}
-                    </div>
-                    <p className="text-xs text-foreground whitespace-pre-wrap bg-muted/30 p-2 rounded">{exercise.notes}</p>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+                return (
+                  <AccordionItem value={`exercise-${index}`} key={exercise.name + index} className="border bg-background rounded-md shadow-sm hover:shadow-md transition-shadow">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <div
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleExerciseClick();
+                            }}
+                            className="cursor-pointer flex items-center justify-center h-6 w-6 rounded border border-input transition-colors hover:bg-accent"
+                            aria-label={`Mark ${exercise.name} as ${exercise.completed ? 'incomplete' : 'complete'}`}
+                          >
+                            <Checkbox
+                              checked={exercise.completed || false}
+                              className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 pointer-events-none"
+                            />
+                          </div>
+                          <span className={cn(
+                            "font-medium text-sm text-left",
+                            exercise.completed ? "line-through text-gray-500" : "text-gray-800"
+                          )}>
+                            {exercise.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${exercise.completed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {exercise.completed ? 'Done' : 'Pending'}
+                          </span>
+                          <span>{exercise.sets} sets</span>
+                          <span>•</span>
+                          <span>{exercise.reps}</span>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+
+                    <AccordionContent className="px-4 pt-2 pb-3 space-y-2 border-t border-border">
+                      <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                        <span>Rest: {exercise.rest}</span>
+                        {exercise.equipment && <span>Equipment: {exercise.equipment}</span>}
+                      </div>
+                      <p className="text-xs text-foreground whitespace-pre-wrap bg-muted/30 p-2 rounded">{exercise.notes}</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
             </Accordion>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">No exercises listed for this workout.</p>
