@@ -32,23 +32,23 @@ export interface MealLibrary {
 
 export const mealLibrary: MealLibrary = {
   breakfast: [
-    { mealType: "Breakfast", name: "Oatmeal with Almond Butter & Berries", calories: 380, protein: 15, carbs: 50, fats: 14, ingredients: [{item: "Oats", qty: "1/2 cup", calories: 150}, {item: "Almond Butter", qty: "2 tbsp", calories: 190}, {item: "Berries", qty: "1/2 cup", calories: 40}], instructions: "Cook oats with water or milk. Stir in almond butter and top with berries.", completed: false },
-    { mealType: "Breakfast", name: "Scrambled Eggs with Spinach & Whole Wheat Toast", calories: 400, protein: 25, carbs: 30, fats: 18, ingredients: [{item: "Eggs", qty: "3"}, {item: "Spinach", qty: "1 cup"}, {item: "Whole Wheat Toast", qty: "2 slices"}], instructions: "Scramble eggs with spinach. Serve with toast.", completed: false },
-    { mealType: "Breakfast", name: "Greek Yogurt with Granola and Honey", calories: 320, protein: 20, carbs: 40, fats: 9, ingredients: [{item: "Greek Yogurt", qty: "1 cup"}, {item: "Granola", qty: "1/4 cup"}, {item: "Honey", qty: "1 tsp"}], instructions: "Combine Greek yogurt, granola, and a drizzle of honey.", completed: false },
-    { mealType: "Breakfast", name: "Protein Smoothie (Whey, Banana, PB)", calories: 450, protein: 35, carbs: 45, fats: 15, ingredients: [{item: "Whey Protein", qty: "1 scoop"}, {item: "Banana", qty: "1"}, {item: "Peanut Butter", qty: "2 tbsp"}, {item: "Almond Milk", qty: "1 cup"} ], completed: false },
+    { mealType: "breakfast", name: "Oatmeal with Almond Butter & Berries", calories: 380, protein: 15, carbs: 50, fats: 14, ingredients: [{item: "Oats", qty: "1/2 cup", calories: 150}, {item: "Almond Butter", qty: "2 tbsp", calories: 190}, {item: "Berries", qty: "1/2 cup", calories: 40}], instructions: "Cook oats with water or milk. Stir in almond butter and top with berries.", completed: false },
+    { mealType: "breakfast", name: "Scrambled Eggs with Spinach & Whole Wheat Toast", calories: 400, protein: 25, carbs: 30, fats: 18, ingredients: [{item: "Eggs", qty: "3"}, {item: "Spinach", qty: "1 cup"}, {item: "Whole Wheat Toast", qty: "2 slices"}], instructions: "Scramble eggs with spinach. Serve with toast.", completed: false },
+    { mealType: "breakfast", name: "Greek Yogurt with Granola and Honey", calories: 320, protein: 20, carbs: 40, fats: 9, ingredients: [{item: "Greek Yogurt", qty: "1 cup"}, {item: "Granola", qty: "1/4 cup"}, {item: "Honey", qty: "1 tsp"}], instructions: "Combine Greek yogurt, granola, and a drizzle of honey.", completed: false },
+    { mealType: "breakfast", name: "Protein Smoothie (Whey, Banana, PB)", calories: 450, protein: 35, carbs: 45, fats: 15, ingredients: [{item: "Whey Protein", qty: "1 scoop"}, {item: "Banana", qty: "1"}, {item: "Peanut Butter", qty: "2 tbsp"}, {item: "Almond Milk", qty: "1 cup"} ], completed: false },
   ],
   lunch: [
-    { mealType: "Lunch", name: "Grilled Chicken Salad with Vinaigrette", calories: 480, protein: 45, carbs: 25, fats: 22, ingredients: [{item: "Chicken Breast", qty: "150g"}, {item: "Mixed Greens", qty: "3 cups"}, {item: "Olive Oil Vinaigrette", qty: "2 tbsp"}], completed: false },
-    { mealType: "Lunch", name: "Quinoa Bowl with Black Beans and Avocado", calories: 550, protein: 20, carbs: 70, fats: 20, ingredients: [{item: "Quinoa", qty: "1 cup cooked"}, {item: "Black Beans", qty: "1/2 cup"}, {item: "Avocado", qty: "1/2"}], completed: false },
+    { mealType: "lunch", name: "Grilled Chicken Salad with Vinaigrette", calories: 480, protein: 45, carbs: 25, fats: 22, ingredients: [{item: "Chicken Breast", qty: "150g"}, {item: "Mixed Greens", qty: "3 cups"}, {item: "Olive Oil Vinaigrette", qty: "2 tbsp"}], completed: false },
+    { mealType: "lunch", name: "Quinoa Bowl with Black Beans and Avocado", calories: 550, protein: 20, carbs: 70, fats: 20, ingredients: [{item: "Quinoa", qty: "1 cup cooked"}, {item: "Black Beans", qty: "1/2 cup"}, {item: "Avocado", qty: "1/2"}], completed: false },
   ],
   dinner: [
-    { mealType: "Dinner", name: "Baked Salmon with Roasted Asparagus & Sweet Potato", calories: 650, protein: 45, carbs: 55, fats: 28, ingredients: [{item: "Salmon Fillet", qty: "150g"}, {item: "Asparagus", qty: "1 cup"}, {item: "Sweet Potato", qty: "1 medium"}], completed: false },
-    { mealType: "Dinner", name: "Lean Beef Stir-fry with Brown Rice", calories: 600, protein: 40, carbs: 60, fats: 20, ingredients: [{item: "Lean Beef Strips", qty: "150g"}, {item: "Mixed Vegetables", qty: "2 cups"}, {item: "Brown Rice", qty: "1 cup cooked"}], completed: false },
+    { mealType: "dinner", name: "Baked Salmon with Roasted Asparagus & Sweet Potato", calories: 650, protein: 45, carbs: 55, fats: 28, ingredients: [{item: "Salmon Fillet", qty: "150g"}, {item: "Asparagus", qty: "1 cup"}, {item: "Sweet Potato", qty: "1 medium"}], completed: false },
+    { mealType: "dinner", name: "Lean Beef Stir-fry with Brown Rice", calories: 600, protein: 40, carbs: 60, fats: 20, ingredients: [{item: "Lean Beef Strips", qty: "150g"}, {item: "Mixed Vegetables", qty: "2 cups"}, {item: "Brown Rice", qty: "1 cup cooked"}], completed: false },
   ],
   snacks: [
-    { mealType: "Snack", name: "Apple with Peanut Butter", calories: 220, protein: 8, carbs: 25, fats: 10, ingredients: [{item: "Apple", qty: "1 medium"}, {item: "Peanut Butter", qty: "2 tbsp"}], completed: false },
-    { mealType: "Snack", name: "Protein Bar", calories: 200, protein: 20, carbs: 20, fats: 8, ingredients: [{item: "Protein Bar", qty: "1"}], completed: false },
-    { mealType: "Snack", name: "Handful of Almonds", calories: 180, protein: 6, carbs: 6, fats: 15, ingredients: [{item: "Almonds", qty: "1/4 cup"}], completed: false },
+    { mealType: "snacks", name: "Apple with Peanut Butter", calories: 220, protein: 8, carbs: 25, fats: 10, ingredients: [{item: "Apple", qty: "1 medium"}, {item: "Peanut Butter", qty: "2 tbsp"}], completed: false },
+    { mealType: "snacks", name: "Protein Bar", calories: 200, protein: 20, carbs: 20, fats: 8, ingredients: [{item: "Protein Bar", qty: "1"}], completed: false },
+    { mealType: "snacks", name: "Handful of Almonds", calories: 180, protein: 6, carbs: 6, fats: 15, ingredients: [{item: "Almonds", qty: "1/4 cup"}], completed: false },
   ],
 };
 
@@ -166,7 +166,7 @@ export const createStaticNutritionPlan = (userPreferences?: NutritionPlanPrefere
         weeklyMealPlanData[day] = {
           meals: [
             {
-              mealType: "Breakfast",
+              mealType: "breakfast",
               name: "Default Breakfast",
               ingredients: [{ item: "Default", qty: "1 serving" }],
               calories: 400,
@@ -191,7 +191,7 @@ export const createStaticNutritionPlan = (userPreferences?: NutritionPlanPrefere
         weeklyMealPlanData[day] = {
           meals: [
             {
-              mealType: "Breakfast",
+              mealType: "breakfast",
               name: "Default Breakfast",
               ingredients: [{ item: "Default", qty: "1 serving" }],
               calories: 400,
@@ -272,49 +272,49 @@ export const createStaticNutritionPlan = (userPreferences?: NutritionPlanPrefere
       multiWeekMealPlans: [
         {
           monday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,
             dailyTotalFats: 20
           },
           tuesday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,
             dailyTotalFats: 20
           },
           wednesday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,
             dailyTotalFats: 20
           },
           thursday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,
             dailyTotalFats: 20
           },
           friday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,
             dailyTotalFats: 20
           },
           saturday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,
             dailyTotalFats: 20
           },
           sunday: { 
-            meals: [{ mealType: "Breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
+            meals: [{ mealType: "breakfast", name: "Emergency Meal", ingredients: [], calories: 500, protein: 30, carbs: 50, fats: 20, completed: false }],
             dailyTotalCalories: 500,
             dailyTotalProtein: 30,
             dailyTotalCarbs: 50,

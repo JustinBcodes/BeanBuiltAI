@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,7 +45,7 @@ const createCompleteMealItem = (
     };
   }
   
-  // Otherwise, create a minimal meal item with default values
+  // Otherwise, create a minimal meal item with proper defaults
   return {
     mealType: progressMeal.mealType,
     name: progressMeal.name,
@@ -112,12 +112,15 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     })()
   } : dailyMeals;
 
-  const handleMealComplete = (
+  // Memoized toggle handler to prevent unnecessary re-renders
+  const handleMealComplete = useCallback((
     mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks',
     mealNameOrSnackIndex: string | number, // Meal name for B/L/D, index for snacks
     currentStatus: boolean
   ) => {
     if (!isHydrated) return; // Prevent action before hydration
+    
+    console.log('🔄 Toggling meal:', { dayOfWeek, mealType, mealNameOrSnackIndex, currentStatus });
     
     toggleMealCompletion(dayOfWeek, mealType, mealNameOrSnackIndex);
     
@@ -126,7 +129,7 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
       title: !currentStatus ? "Meal marked complete!" : "Meal marked incomplete.",
       description: `${dayOfWeek}: ${mealToLog}`,
     });
-  };
+  }, [isHydrated, dayOfWeek, toggleMealCompletion, toast]);
 
   // const handleCustomize = async (mealType: string, updatedMeal: MealItem, snackIndex?: number) => {
   //   // Future implementation for meal customization
@@ -148,10 +151,16 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
         </div>
       );
     }
+    
+    // For snacks, use the index as identifier; for other meals, use the meal name
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
     return (
-      <div key={meal.name + (snackIndex !== undefined ? snackIndex : '')} className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0">
+      <div 
+        key={meal.name + (snackIndex !== undefined ? snackIndex : '')} 
+        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group"
+        onClick={() => handleMealComplete(mealType, mealIdentifier, meal.completed)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Utensils className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -162,7 +171,7 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={(e) => e.stopPropagation()}>
                       <Info className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                   </TooltipTrigger>
@@ -182,7 +191,10 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
               variant="ghost"
               size="sm"
               disabled={!isHydrated}
-              onClick={() => handleMealComplete(mealType, mealIdentifier, meal.completed)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMealComplete(mealType, mealIdentifier, meal.completed);
+              }}
               className="h-8 w-8 p-0"
               aria-label={`Mark ${meal.name} as ${meal.completed ? 'incomplete' : 'complete'}`}
             >

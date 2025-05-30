@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -42,8 +42,11 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
   // Use state data if available, otherwise fall back to props
   const workoutToRender = dayData || daySchedule;
 
-  const handleExerciseComplete = (exerciseName: string, exerciseIndex: number) => {
+  // Memoized exercise completion handler
+  const handleExerciseComplete = useCallback((exerciseName: string, exerciseIndex: number) => {
     if (!isHydrated) return; // Prevent action before hydration
+    
+    console.log('🔄 Toggling exercise:', { dayOfWeek: workoutToRender.dayOfWeek, exerciseName, exerciseIndex });
     
     if (workoutToRender.workoutDetails) {
       toggleExerciseCompletion(workoutToRender.dayOfWeek, exerciseName, exerciseIndex)
@@ -52,7 +55,7 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
         description: `${exerciseName} completion status changed.`,
       })
     }
-  }
+  }, [isHydrated, workoutToRender.dayOfWeek, workoutToRender.workoutDetails, toggleExerciseCompletion, toast])
 
   const handleCustomize = async (updatedWorkout: any) => {
     try {
@@ -155,23 +158,20 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
                   <AccordionTrigger className="px-4 py-3 hover:no-underline">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={!isHydrated}
+                        <div
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             handleExerciseComplete(exercise.name, index);
                           }}
-                          className="h-6 w-6 p-0"
+                          className="cursor-pointer flex items-center justify-center h-6 w-6 rounded border border-input transition-colors hover:bg-accent"
                           aria-label={`Mark ${exercise.name} as ${exercise.completed ? 'incomplete' : 'complete'}`}
                         >
                           <Checkbox
                             checked={exercise.completed || false}
-                            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 pointer-events-none"
                           />
-                        </Button>
+                        </div>
                         <span className={cn(
                           "font-medium text-sm text-left",
                           exercise.completed ? "line-through text-gray-500" : "text-gray-800"

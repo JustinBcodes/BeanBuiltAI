@@ -636,7 +636,11 @@ export const useStore = create<Store>()(
       toggleExerciseCompletion: (dayOfWeek, exerciseIdentifier, exerciseIndex) => {
         const currentWPlan = get().workoutPlan;
         const currentWProgress = get().workoutProgress;
+        
+        console.log('🔄 Store: toggleExerciseCompletion called with:', { dayOfWeek, exerciseIdentifier, exerciseIndex });
+        
         if (!currentWPlan || !currentWProgress || currentWPlan.currentWeekIndex === undefined) {
+          console.log('❌ Store: Missing workout plan or progress data');
           return;
         }
 
@@ -644,6 +648,7 @@ export const useStore = create<Store>()(
 
         // Ensure progress structure exists for the current week
         if (!currentWProgress.weeklySchedule[weekIdx]) {
+            console.log('❌ Store: No progress data for week', weekIdx);
             return;
         }
         
@@ -652,7 +657,9 @@ export const useStore = create<Store>()(
                 return weekProgress.map(dayItemProg => {
                     if (dayItemProg.dayOfWeek === dayOfWeek && dayItemProg.workoutDetails && dayItemProg.workoutDetails.exercises) {
                         const updatedExercises = dayItemProg.workoutDetails.exercises.map((ex, exIdx) => {
+                            // Use exerciseIndex as the primary identifier, fallback to name matching
                             if ((exerciseIndex !== undefined && exIdx === exerciseIndex) || (ex.name === exerciseIdentifier)) {
+                                console.log('✅ Store: Toggling exercise completion:', ex.name, 'from', ex.completed, 'to', !ex.completed);
                                 return { ...ex, completed: !ex.completed };
                             }
                             return ex;
@@ -701,13 +708,17 @@ export const useStore = create<Store>()(
         const currentNPlan = get().nutritionPlan;
         const currentNProgress = get().nutritionProgress;
 
+        console.log('🔄 Store: toggleMealCompletion called with:', { dayOfWeek, mealTypeToToggle, mealIdentifier });
+
         if (!currentNPlan || !currentNProgress || currentNPlan.currentWeekIndex === undefined) {
+          console.log('❌ Store: Missing plan or progress data');
           return;
         }
         
         const weekIdx = currentNPlan.currentWeekIndex;
 
         if (!currentNProgress.weeklyMealProgress[weekIdx]) {
+            console.log('❌ Store: No progress data for week', weekIdx);
             return;
         }
 
@@ -715,13 +726,15 @@ export const useStore = create<Store>()(
             if (wIdx === weekIdx) {
                 return weekMealsProg.map(dayProg => {
                     if (dayProg.dayOfWeek === dayOfWeek && dayProg.meals) {
-                        const updatedMeals = dayProg.meals.map((meal, index) => {
-                             // For snacks, mealIdentifier is index, for others it's name.
-                             const isTargetMeal = typeof mealIdentifier === 'number' 
-                                ? meal.mealType.toLowerCase().includes('snack') && index === mealIdentifier
-                                : meal.name === mealIdentifier && meal.mealType === mealTypeToToggle;
+                        const updatedMeals = dayProg.meals.map((meal, mealIndex) => {
+                             // For snacks, mealIdentifier is the snack index (number)
+                             // For other meals (breakfast, lunch, dinner), mealIdentifier is the meal name (string)
+                             const isTargetMeal = mealTypeToToggle === 'snacks' 
+                                ? (meal.mealType === 'snacks' && mealIndex === mealIdentifier)
+                                : (meal.name === mealIdentifier && meal.mealType === mealTypeToToggle);
 
                             if (isTargetMeal) {
+                                console.log('✅ Store: Toggling meal completion:', meal.name, 'from', meal.completed, 'to', !meal.completed);
                                 return { ...meal, completed: !meal.completed };
                             }
                             return meal;
