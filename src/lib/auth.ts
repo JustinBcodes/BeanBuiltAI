@@ -3,6 +3,7 @@ import { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './prisma';
+import './env-validation'; // Validate environment variables on load
 
 // Define our custom user type
 interface CustomUser {

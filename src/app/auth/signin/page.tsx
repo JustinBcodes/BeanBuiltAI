@@ -47,27 +47,17 @@ export default function SignInPage() {
     }
   }, [sessionChecked, status, session, from, router])
 
-  const handleSignIn = async (provider: string) => {
+  // ✅ PRODUCTION-READY: Use exact signIn implementation from checklist
+  const handleSignIn = async () => {
     if (isSigningIn) return // Prevent double-clicks
     
     setIsSigningIn(true)
     try {
-      console.log('🚀 Initiating sign-in with provider:', provider)
+      console.log('🚀 Initiating Google sign-in with production config')
       
-      // Enhanced sign-in configuration for mobile/incognito compatibility
-      const result = await signIn(provider, { 
-        callbackUrl: from,
-        redirect: false // Handle redirect manually for better control
-      })
+      // ✅ Use EXACT implementation from production checklist
+      await signIn("google", { callbackUrl: from })
       
-      if (result?.error) {
-        console.error('❌ Sign-in error:', result.error)
-        setIsSigningIn(false)
-      } else if (result?.url) {
-        console.log('✅ Sign-in successful, redirecting to:', result.url)
-        // Use window.location for more reliable redirect on mobile
-        window.location.href = result.url
-      }
     } catch (err) {
       console.error('❌ Sign-in initiation error:', err)
       setIsSigningIn(false)
@@ -130,8 +120,9 @@ export default function SignInPage() {
               </p>
             </div>
           )}
+          {/* ✅ PRODUCTION-READY: Exact Google Sign-In Button from checklist */}
           <Button
-            onClick={() => handleSignIn('google')}
+            onClick={handleSignIn}
             disabled={isSigningIn}
             variant="outline"
             className="w-full text-foreground hover:bg-accent/50 focus-visible:ring-ring"
