@@ -77,6 +77,17 @@ export interface MealItem {
   completed?: boolean;
 }
 
+// Type for meal items with completion status
+export type CompletedMealItem = MealItem & { completed: boolean };
+
+// Type for simplified meal progress data stored in nutritionProgress
+export interface MealProgress {
+  mealType: string;
+  name: string;
+  completed: boolean;
+  originalCalories?: number;
+}
+
 export interface DailyMealPlan {
   meals: MealItem[];
   dailyTotalCalories: number;

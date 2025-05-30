@@ -14,16 +14,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { MealItem, NutritionIngredient } from '@/types/plan-types'; // Use types from plan-types
+import type { MealItem, NutritionIngredient, CompletedMealItem, MealProgress } from '@/types/plan-types'; // Use types from plan-types
 import { useEffect } from 'react'
 
 // The structure of dailyMeals received as prop from nutrition/page.tsx
 // which comes from store's nutritionProgress.weeklySchedule[n].meals
 interface DailyMealsProp {
-  breakfast: (MealItem & { completed: boolean }) | null;
-  lunch: (MealItem & { completed: boolean }) | null;
-  dinner: (MealItem & { completed: boolean }) | null;
-  snacks: (MealItem & { completed: boolean })[];
+  breakfast: CompletedMealItem | null;
+  lunch: CompletedMealItem | null;
+  dinner: CompletedMealItem | null;
+  snacks: CompletedMealItem[];
 }
 
 interface NutritionCardProps {
@@ -31,24 +31,80 @@ interface NutritionCardProps {
   dailyMeals: DailyMealsProp;
 }
 
+// Helper function to create a complete MealItem from progress data
+const createCompleteMealItem = (
+  progressMeal: MealProgress | undefined,
+  originalMeal?: MealItem
+): CompletedMealItem | null => {
+  if (!progressMeal) return null;
+  
+  // If we have the original meal data, use it
+  if (originalMeal) {
+    return {
+      ...originalMeal,
+      completed: progressMeal.completed
+    };
+  }
+  
+  // Otherwise, create a minimal meal item with default values
+  return {
+    mealType: progressMeal.mealType,
+    name: progressMeal.name,
+    ingredients: [], // Default empty ingredients
+    calories: progressMeal.originalCalories || 0,
+    protein: 0, // Default values
+    carbs: 0,
+    fats: 0,
+    instructions: undefined,
+    completed: progressMeal.completed
+  };
+};
+
 export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
   const { toast } = useToast();
   
   // Subscribe to the actual state to ensure re-renders
   const toggleMealCompletion = useStore(state => state.toggleMealCompletion);
   const nutritionProgress = useStore(state => state.nutritionProgress);
+  const nutritionPlan = useStore(state => state.nutritionPlan);
   
   // Get the current week's data directly from state to ensure fresh data
   const currentWeekIndex = nutritionProgress?.currentWeekIndex || 0;
   const currentWeekProgress = nutritionProgress?.weeklyMealProgress?.[currentWeekIndex];
   const dayData = currentWeekProgress?.find(day => day.dayOfWeek === dayOfWeek);
   
-  // Use state data if available, otherwise fall back to props
+  // Get the original meal plan data for this day to get complete meal information
+  const currentWeekPlan = nutritionPlan?.multiWeekMealPlans?.[currentWeekIndex];
+  const dayKey = dayOfWeek.toLowerCase();
+  const originalDayPlan = currentWeekPlan && dayKey in currentWeekPlan 
+    ? currentWeekPlan[dayKey as keyof typeof currentWeekPlan] 
+    : null;
+
+  // Create complete meal items by combining progress data with original meal data
   const mealsToRender = dayData ? {
-    breakfast: dayData.meals?.find((meal: any) => meal.mealType === 'breakfast') || null,
-    lunch: dayData.meals?.find((meal: any) => meal.mealType === 'lunch') || null,
-    dinner: dayData.meals?.find((meal: any) => meal.mealType === 'dinner') || null,
-    snacks: dayData.meals?.filter((meal: any) => meal.mealType === 'snacks') || []
+    breakfast: (() => {
+      const progressMeal = dayData.meals?.find((meal: any) => meal.mealType === 'breakfast');
+      const originalMeal = originalDayPlan?.meals?.find(m => m.mealType === 'breakfast');
+      return createCompleteMealItem(progressMeal, originalMeal);
+    })(),
+    lunch: (() => {
+      const progressMeal = dayData.meals?.find((meal: any) => meal.mealType === 'lunch');
+      const originalMeal = originalDayPlan?.meals?.find(m => m.mealType === 'lunch');
+      return createCompleteMealItem(progressMeal, originalMeal);
+    })(),
+    dinner: (() => {
+      const progressMeal = dayData.meals?.find((meal: any) => meal.mealType === 'dinner');
+      const originalMeal = originalDayPlan?.meals?.find(m => m.mealType === 'dinner');
+      return createCompleteMealItem(progressMeal, originalMeal);
+    })(),
+    snacks: (() => {
+      const progressSnacks = dayData.meals?.filter((meal: any) => meal.mealType === 'snacks') || [];
+      const originalSnacks = originalDayPlan?.meals?.filter(m => m.mealType === 'snacks') || [];
+      return progressSnacks.map((progressSnack: any, index: number) => {
+        const originalSnack = originalSnacks[index];
+        return createCompleteMealItem(progressSnack, originalSnack);
+      }).filter(Boolean) as CompletedMealItem[];
+    })()
   } : dailyMeals;
 
   const handleMealComplete = (
@@ -77,7 +133,7 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
   //   toast({title: "Customize Clicked (Not Implemented)", description: mealType});
   // };
 
-  const renderMeal = (meal: (MealItem & { completed: boolean }) | null, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks', snackIndex?: number) => {
+  const renderMeal = (meal: CompletedMealItem | null, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks', snackIndex?: number) => {
     if (!meal) {
       return (
         <div key={mealType + (snackIndex !== undefined ? snackIndex : '')} className="p-4 text-sm text-muted-foreground">

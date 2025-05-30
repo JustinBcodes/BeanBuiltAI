@@ -20,6 +20,7 @@ function ProfileLoader() {
   const hasInitialized = useRef(false)
   const lastSessionId = useRef<string | null>(null)
   const lastOnboardingStatus = useRef<boolean | null>(null)
+  const [profileCreationAttempted, setProfileCreationAttempted] = useState(false)
 
   // Enhanced hydration guard - critical for mobile and incognito browsers
   useEffect(() => {
@@ -44,9 +45,11 @@ function ProfileLoader() {
       console.log(`🔄 StoreProvider: Session ID changed from ${lastSessionId.current} to ${session.user.id}`)
       lastSessionId.current = session.user.id
       hasInitialized.current = false
+      setProfileCreationAttempted(false)
     } else if (!session?.user?.id) {
       lastSessionId.current = null
       hasInitialized.current = false
+      setProfileCreationAttempted(false)
     }
 
     // Reset if onboarding status changed (important for production)
@@ -54,6 +57,7 @@ function ProfileLoader() {
       console.log(`🔄 StoreProvider: Onboarding status changed from ${lastOnboardingStatus.current} to ${currentOnboardingStatus}`)
       lastOnboardingStatus.current = currentOnboardingStatus
       hasInitialized.current = false
+      setProfileCreationAttempted(false)
     }
   }, [session?.user?.id, session?.user?.hasCompletedOnboarding, status])
 
@@ -64,11 +68,12 @@ function ProfileLoader() {
       return
     }
 
-    if (status === 'authenticated' && session?.user && !profile) {
+    if (status === 'authenticated' && session?.user && !profile && !profileCreationAttempted) {
       console.log(`🔄 StoreProvider: Creating profile from session data for user ${session.user.id}`)
       hasInitialized.current = true
+      setProfileCreationAttempted(true)
       
-      // Create profile immediately from session data
+      // Create profile immediately from session data - this prevents infinite loading
       const newProfile = {
         id: session.user.id,
         name: session.user.name ?? "",
@@ -209,7 +214,7 @@ function ProfileLoader() {
       // Hydrate from database asynchronously
       hydrateFromDatabase()
     }
-  }, [isHydrated, status, session, profile, setProfile, setWorkoutPlan, setNutritionPlan, generatePlans, initializeProgressFromPlans])
+  }, [isHydrated, status, session, profile, setProfile, setWorkoutPlan, setNutritionPlan, generatePlans, initializeProgressFromPlans, profileCreationAttempted])
 
   // Enhanced loading state handling for mobile/incognito browsers
   if (status === 'loading') {
@@ -217,9 +222,32 @@ function ProfileLoader() {
     return <LoadingSkeleton message="Authenticating..." />
   }
 
-  if (status === 'authenticated' && !profile) {
-    console.log(`🔄 StoreProvider: Authenticated but no profile - status: ${status}, profile: ${!!profile}`)
+  // Only show loading if we haven't attempted to create a profile yet
+  if (status === 'authenticated' && !profile && !profileCreationAttempted) {
+    console.log(`🔄 StoreProvider: Authenticated but no profile - status: ${status}, profile: ${!!profile}, attempted: ${profileCreationAttempted}`)
     return <LoadingSkeleton message="Loading your profile..." />
+  }
+
+  // If we've attempted to create a profile but it's still null, there might be an issue
+  // Let's create a fallback profile to prevent infinite loading
+  if (status === 'authenticated' && session?.user && !profile && profileCreationAttempted) {
+    console.warn(`⚠️ StoreProvider: Profile creation attempted but failed, creating fallback profile`)
+    const fallbackProfile = {
+      id: session.user.id,
+      name: session.user.name ?? "User",
+      email: session.user.email ?? "",
+      hasCompletedOnboarding: session.user.hasCompletedOnboarding ?? false,
+      image: session.user.image ?? "",
+      age: 25,
+      height: 70,
+      currentWeight: 150,
+      targetWeight: 140,
+      goalType: 'general_fitness' as const,
+      experienceLevel: 'beginner' as const,
+      preferredWorkoutDays: ['monday', 'wednesday', 'friday'],
+      sex: 'male' as const,
+    }
+    setProfile(fallbackProfile)
   }
 
   // Profile is ready or user is unauthenticated - let children render
