@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { toast } from '@/components/ui/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { tips } from '@/lib/tips'
 
@@ -44,6 +44,7 @@ const kgToLbs = (kg: number): number => {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { data: session, status: sessionStatus } = useSession()
   const [isHydrated, setIsHydrated] = useState(false)
   
   const {
