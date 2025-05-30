@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +15,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { MealItem, NutritionIngredient, CompletedMealItem, MealProgress } from '@/types/plan-types'; // Use types from plan-types
-import { useEffect } from 'react'
 
 // The structure of dailyMeals received as prop from nutrition/page.tsx
 // which comes from store's nutritionProgress.weeklySchedule[n].meals
@@ -62,11 +61,17 @@ const createCompleteMealItem = (
 
 export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
   const { toast } = useToast();
+  const [isHydrated, setIsHydrated] = useState(false);
   
   // Subscribe to the actual state to ensure re-renders
   const toggleMealCompletion = useStore(state => state.toggleMealCompletion);
   const nutritionProgress = useStore(state => state.nutritionProgress);
   const nutritionPlan = useStore(state => state.nutritionPlan);
+  
+  // Hydration guard
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
   
   // Get the current week's data directly from state to ensure fresh data
   const currentWeekIndex = nutritionProgress?.currentWeekIndex || 0;
@@ -112,6 +117,8 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     mealNameOrSnackIndex: string | number, // Meal name for B/L/D, index for snacks
     currentStatus: boolean
   ) => {
+    if (!isHydrated) return; // Prevent action before hydration
+    
     toggleMealCompletion(dayOfWeek, mealType, mealNameOrSnackIndex);
     
     const mealToLog = typeof mealNameOrSnackIndex === 'string' ? mealNameOrSnackIndex : `${mealType} #${mealNameOrSnackIndex + 1}`;
@@ -171,15 +178,19 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
             {/* <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCustomize(mealType, meal, snackIndex)}> 
               <Edit3 className="h-4 w-4 text-muted-foreground hover:text-primary" />
             </Button> */} 
-            <Checkbox
-              id={`${dayOfWeek}-${meal.name}-${snackIndex}`}
-              checked={meal.completed}
-              onCheckedChange={(checked) => {
-                handleMealComplete(mealType, mealIdentifier, meal.completed);
-              }}
-              aria-label={`Mark ${meal.name} as complete`}
-              className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!isHydrated}
+              onClick={() => handleMealComplete(mealType, mealIdentifier, meal.completed)}
+              className="h-8 w-8 p-0"
+              aria-label={`Mark ${meal.name} as ${meal.completed ? 'incomplete' : 'complete'}`}
+            >
+              <Checkbox
+                checked={meal.completed}
+                className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+            </Button>
           </div>
         </div>
 
@@ -203,6 +214,24 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
           <Badge variant="outline">F: {meal.fats}g</Badge>
         </div>
       </div>
+    );
+  }
+
+  // Show loading state during hydration
+  if (!isHydrated) {
+    return (
+      <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
+        <div className="p-5 bg-card-foreground/5 border-b border-border">
+          <h3 className="text-lg font-semibold text-center text-card-foreground">{dayOfWeek}</h3>
+        </div>
+        <div className="p-4 md:p-5 space-y-4 flex-grow overflow-y-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          </div>
+        </div>
+      </Card>
     );
   }
 
