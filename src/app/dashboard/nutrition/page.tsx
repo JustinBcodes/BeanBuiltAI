@@ -28,6 +28,20 @@ export default function NutritionPage() {
     multiWeekMealPlansLength: nutritionPlan?.multiWeekMealPlans?.length
   });
 
+  // AGGRESSIVE DEBUG: Add alert when page loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      alert('🍎 Nutrition Page has loaded! Check console for logs.');
+      console.log('🔥 NUTRITION PAGE LOADED WITH DATA:', {
+        hasProfile: !!profile,
+        hasNutritionProgress: !!nutritionProgress,
+        hasNutritionPlan: !!nutritionPlan,
+        currentWeekProgressLength: currentWeekProgress?.length
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [profile, nutritionProgress, nutritionPlan, currentWeekProgress]);
+
   const handleRegeneratePlans = async () => {
     if (!profile) {
       toast({
