@@ -191,13 +191,23 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
     const handleClick = () => {
+      console.log('🔥 CLICK DETECTED ON MEAL CARD!');
       console.log('🖱️ Meal clicked:', meal.name);
+      console.log('🔍 Debug info:', {
+        isHydrated,
+        mealType,
+        mealIdentifier,
+        completed: meal.completed,
+        dayOfWeek,
+        hasToggleFunction: !!toggleMealCompletion
+      });
       
       if (!isHydrated) {
         console.log('❌ Not hydrated yet, ignoring click');
         return;
       }
       
+      console.log('✅ About to call handleMealComplete');
       handleMealComplete(mealType, mealIdentifier, meal.completed);
     };
 
@@ -207,6 +217,18 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
         className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group hover:bg-muted/30 transition-colors"
         onClick={handleClick}
       >
+        {/* TEST BUTTON TO VERIFY CLICKS WORK */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            alert('TEST BUTTON CLICKED! If you see this, clicks work.');
+            console.log('🧪 Test button clicked successfully');
+          }}
+          className="bg-red-500 text-white px-2 py-1 rounded text-xs mb-2"
+        >
+          TEST CLICK
+        </button>
+        
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div 

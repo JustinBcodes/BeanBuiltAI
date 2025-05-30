@@ -154,13 +154,23 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
             <Accordion type="single" collapsible className="space-y-2">
               {workoutDetails.exercises.map((exercise, index) => {
                 const handleExerciseClick = () => {
+                  console.log('🔥 EXERCISE CLICK DETECTED!');
                   console.log('🖱️ Exercise clicked:', exercise.name);
+                  console.log('🔍 Exercise debug info:', {
+                    isHydrated,
+                    exerciseName: exercise.name,
+                    exerciseIndex: index,
+                    completed: exercise.completed,
+                    dayOfWeek: workoutToRender.dayOfWeek,
+                    hasToggleFunction: !!toggleExerciseCompletion
+                  });
                   
                   if (!isHydrated) {
                     console.log('❌ Not hydrated yet, ignoring exercise click');
                     return;
                   }
                   
+                  console.log('✅ About to call handleExerciseComplete');
                   handleExerciseComplete(exercise.name, index);
                 };
 
