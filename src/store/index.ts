@@ -634,152 +634,96 @@ export const useStore = create<Store>()(
       },
 
       toggleExerciseCompletion: (dayOfWeek, exerciseIdentifier, exerciseIndex) => {
-        const currentWPlan = get().workoutPlan;
-        const currentWProgress = get().workoutProgress;
+        console.log('🎯 NEW SIMPLE TOGGLE - Exercise:', { dayOfWeek, exerciseIdentifier, exerciseIndex });
         
-        console.log('🔄 Store: toggleExerciseCompletion called with:', { dayOfWeek, exerciseIdentifier, exerciseIndex });
-        
-        if (!currentWPlan || !currentWProgress || currentWPlan.currentWeekIndex === undefined) {
-          console.log('❌ Store: Missing workout plan or progress data');
-          return;
-        }
-
-        const weekIdx = currentWPlan.currentWeekIndex;
-
-        // Ensure progress structure exists for the current week
-        if (!currentWProgress.weeklySchedule[weekIdx]) {
-            console.log('❌ Store: No progress data for week', weekIdx);
-            return;
-        }
-        
-        const updatedWeeklyScheduleProgress = currentWProgress.weeklySchedule.map((weekProgress, wIdx) => {
-            if (wIdx === weekIdx) {
-                return weekProgress.map(dayItemProg => {
-                    if (dayItemProg.dayOfWeek === dayOfWeek && dayItemProg.workoutDetails && dayItemProg.workoutDetails.exercises) {
-                        const updatedExercises = dayItemProg.workoutDetails.exercises.map((ex, exIdx) => {
-                            // Use exerciseIndex as the primary identifier, fallback to name matching
-                            if ((exerciseIndex !== undefined && exIdx === exerciseIndex) || (ex.name === exerciseIdentifier)) {
-                                console.log('✅ Store: Toggling exercise completion:', ex.name, 'from', ex.completed, 'to', !ex.completed);
-                                return { ...ex, completed: !ex.completed };
-                            }
-                            return ex;
-                        });
-                        
-                        // Recalculate if workoutDetails itself is completed
-                        const allExercisesCompleted = updatedExercises.every(ex => ex.completed);
-                        
-                        return { 
-                            ...dayItemProg, 
-                            workoutDetails: { 
-                                ...dayItemProg.workoutDetails, 
-                                exercises: updatedExercises,
-                                completed: allExercisesCompleted
-                            } 
-                        };
-                    }
-                    return dayItemProg;
-                });
-            }
-            return weekProgress;
+        set((state) => {
+          // Simple deep clone to avoid mutations
+          const newState = JSON.parse(JSON.stringify(state));
+          
+          if (!newState.workoutProgress?.weeklySchedule?.[0]) {
+            console.log('❌ No workout progress found');
+            return state;
+          }
+          
+          // Find the day
+          const dayItem = newState.workoutProgress.weeklySchedule[0].find(day => 
+            day.dayOfWeek === dayOfWeek
+          );
+          
+          if (!dayItem?.workoutDetails?.exercises) {
+            console.log('❌ No exercises found for day:', dayOfWeek);
+            return state;
+          }
+          
+          // Toggle the specific exercise
+          if (exerciseIndex !== undefined && dayItem.workoutDetails.exercises[exerciseIndex]) {
+            dayItem.workoutDetails.exercises[exerciseIndex].completed = 
+              !dayItem.workoutDetails.exercises[exerciseIndex].completed;
+            
+            console.log('✅ Toggled exercise:', dayItem.workoutDetails.exercises[exerciseIndex].name, 
+              'to', dayItem.workoutDetails.exercises[exerciseIndex].completed);
+            
+            // Update workout completion
+            dayItem.workoutDetails.completed = dayItem.workoutDetails.exercises.every(ex => ex.completed);
+          }
+          
+          return newState;
         });
-
-        // Recalculate completed workouts for the current week
-        let completedWorkoutsThisWeek = 0;
-        if (updatedWeeklyScheduleProgress[weekIdx]) {
-            updatedWeeklyScheduleProgress[weekIdx].forEach(dayProg => {
-                if (dayProg.workoutDetails?.completed) {
-                    completedWorkoutsThisWeek++;
-                }
-            });
-        }
-
-        set({ 
-            workoutProgress: { 
-                ...currentWProgress, 
-                weeklySchedule: updatedWeeklyScheduleProgress,
-            } 
-        });
-        
-        // Reinitialize progress to recalculate overall stats
-        get().initializeProgressFromPlans(get().workoutPlan, get().nutritionPlan);
       },
 
-      toggleMealCompletion: (dayOfWeek, mealTypeToToggle, mealIdentifier) => {
-        const currentNPlan = get().nutritionPlan;
-        const currentNProgress = get().nutritionProgress;
-
-        console.log('🔄 Store: toggleMealCompletion called with:', { dayOfWeek, mealTypeToToggle, mealIdentifier });
-
-        if (!currentNPlan || !currentNProgress || currentNPlan.currentWeekIndex === undefined) {
-          console.log('❌ Store: Missing plan or progress data');
-          return;
-        }
+      toggleMealCompletion: (dayOfWeek, mealType, mealIdentifier) => {
+        console.log('🎯 NEW SIMPLE TOGGLE - Meal:', { dayOfWeek, mealType, mealIdentifier });
         
-        const weekIdx = currentNPlan.currentWeekIndex;
-
-        if (!currentNProgress.weeklyMealProgress[weekIdx]) {
-            console.log('❌ Store: No progress data for week', weekIdx);
-            return;
-        }
-
-        const updatedWeeklyMealProgress = currentNProgress.weeklyMealProgress.map((weekMealsProg, wIdx) => {
-            if (wIdx === weekIdx) {
-                return weekMealsProg.map(dayProg => {
-                    if (dayProg.dayOfWeek === dayOfWeek && dayProg.meals) {
-                        const updatedMeals = dayProg.meals.map((meal, mealIndex) => {
-                             // For snacks, mealIdentifier is the snack index (number)
-                             // For other meals (breakfast, lunch, dinner), mealIdentifier is the meal name (string)
-                             const isTargetMeal = mealTypeToToggle === 'snacks' 
-                                ? (meal.mealType === 'snacks' && mealIndex === mealIdentifier)
-                                : (meal.name === mealIdentifier && meal.mealType === mealTypeToToggle);
-
-                            if (isTargetMeal) {
-                                console.log('✅ Store: Toggling meal completion:', meal.name, 'from', meal.completed, 'to', !meal.completed);
-                                return { ...meal, completed: !meal.completed };
-                            }
-                            return meal;
-                        });
-                        
-                        // Recalculate logged calories/macros for the day
-                        let loggedCalories = 0;
-                        let loggedProtein = 0;
-                        let loggedCarbs = 0;
-                        let loggedFats = 0;
-                        
-                        const currentDayPlan = currentNPlan.multiWeekMealPlans[weekIdx]?.[dayOfWeek.toLowerCase() as keyof WeeklyMealPlan];
-
-                        updatedMeals.forEach(progMeal => {
-                            if (progMeal.completed && currentDayPlan) {
-                                const originalMeal = currentDayPlan.meals.find(m => m.name === progMeal.name && m.mealType === progMeal.mealType);
-                                if (originalMeal) {
-                                    loggedCalories += originalMeal.calories;
-                                    loggedProtein += originalMeal.protein;
-                                    loggedCarbs += originalMeal.carbs;
-                                    loggedFats += originalMeal.fats;
-                                }
-                            }
-                        });
-
-                        return { 
-                            ...dayProg, 
-                            meals: updatedMeals,
-                            dailyTotalCaloriesLogged: loggedCalories,
-                            dailyTotalProteinLogged: loggedProtein,
-                            dailyTotalCarbsLogged: loggedCarbs,
-                            dailyTotalFatsLogged: loggedFats,
-                        };
-                    }
-                    return dayProg;
-                });
+        set((state) => {
+          // Simple deep clone to avoid mutations
+          const newState = JSON.parse(JSON.stringify(state));
+          
+          if (!newState.nutritionProgress?.weeklyMealProgress?.[0]) {
+            console.log('❌ No nutrition progress found');
+            return state;
+          }
+          
+          // Find the day
+          const dayItem = newState.nutritionProgress.weeklyMealProgress[0].find(day => 
+            day.dayOfWeek === dayOfWeek
+          );
+          
+          if (!dayItem?.meals) {
+            console.log('❌ No meals found for day:', dayOfWeek);
+            return state;
+          }
+          
+          // Find and toggle the meal
+          let mealFound = false;
+          for (let i = 0; i < dayItem.meals.length; i++) {
+            const meal = dayItem.meals[i];
+            
+            // Simple matching logic
+            if (mealType === 'snacks') {
+              // For snacks, use index
+              if (meal.mealType === 'snacks' && i === mealIdentifier) {
+                meal.completed = !meal.completed;
+                mealFound = true;
+                console.log('✅ Toggled snack:', meal.name, 'to', meal.completed);
+                break;
+              }
+            } else {
+              // For other meals, use name
+              if (meal.name === mealIdentifier && meal.mealType === mealType) {
+                meal.completed = !meal.completed;
+                mealFound = true;
+                console.log('✅ Toggled meal:', meal.name, 'to', meal.completed);
+                break;
+              }
             }
-            return weekMealsProg;
-        });
-        
-        set({ 
-            nutritionProgress: { 
-                ...currentNProgress, 
-                weeklyMealProgress: updatedWeeklyMealProgress,
-            }
+          }
+          
+          if (!mealFound) {
+            console.log('❌ Meal not found:', { mealType, mealIdentifier });
+            return state;
+          }
+          
+          return newState;
         });
       },
 
