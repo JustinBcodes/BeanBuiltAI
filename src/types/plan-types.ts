@@ -104,6 +104,7 @@ export interface WeeklyMealPlan {
   friday: DailyMealPlan;
   saturday: DailyMealPlan;
   sunday: DailyMealPlan;
+  [key: string]: DailyMealPlan; // Allow string indexing for dynamic day access
 }
 
 export interface NutritionPlanPreferences {

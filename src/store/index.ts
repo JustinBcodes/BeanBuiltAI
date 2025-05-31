@@ -646,7 +646,7 @@ export const useStore = create<Store>()(
           }
           
           // Find the day
-          const dayItem = newState.workoutProgress.weeklySchedule[0].find(day => 
+          const dayItem = newState.workoutProgress.weeklySchedule[0].find((day: any) => 
             day.dayOfWeek === dayOfWeek
           );
           
@@ -664,7 +664,7 @@ export const useStore = create<Store>()(
               'to', dayItem.workoutDetails.exercises[exerciseIndex].completed);
             
             // Update workout completion
-            dayItem.workoutDetails.completed = dayItem.workoutDetails.exercises.every(ex => ex.completed);
+            dayItem.workoutDetails.completed = dayItem.workoutDetails.exercises.every((ex: any) => ex.completed);
           }
           
           return newState;
@@ -684,7 +684,7 @@ export const useStore = create<Store>()(
           }
           
           // Find the day
-          const dayItem = newState.nutritionProgress.weeklyMealProgress[0].find(day => 
+          const dayItem = newState.nutritionProgress.weeklyMealProgress[0].find((day: any) => 
             day.dayOfWeek === dayOfWeek
           );
           

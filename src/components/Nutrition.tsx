@@ -6,34 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, CheckCircle2 } from 'lucide-react'
-
-// Define Ingredient and Meal types, similar to store/index.ts or NutritionTracking.tsx
-interface Ingredient {
-  name: string;
-  amount: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
-
-interface Meal {
-  name: string;
-  ingredients: Ingredient[];
-  totalCalories: number;
-  totalProtein: number;
-  totalCarbs: number;
-  totalFats: number;
-  instructions?: string;
-  completed: boolean;
-}
-
-interface DayPlan { // Type for dayPlan from Object.entries
-  breakfast: Meal;
-  lunch: Meal;
-  dinner: Meal;
-  snacks: Meal[];
-}
+import { DailyMealPlan, MealItem } from '@/types/plan-types'
 
 interface Supplement { // Basic type for supplement
     name: string;
@@ -93,22 +66,22 @@ export function Nutrition() {
     )
   }
 
-  const renderMealDetails = (meal: Meal | undefined) => ( // Added undefined to meal type
+  const renderMealDetails = (meal: MealItem | undefined) => ( // Updated to use MealItem
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h4 className="font-medium">{meal?.name || 'Unnamed Meal'}</h4>
-        <span className="text-sm text-gray-500">{meal?.totalCalories || 0} calories</span>
+        <span className="text-sm text-gray-500">{meal?.calories || 0} calories</span>
       </div>
       <div className="text-sm text-gray-500">
-        <p>Protein: {meal?.totalProtein || 0}g | Carbs: {meal?.totalCarbs || 0}g | Fats: {meal?.totalFats || 0}g</p>
+        <p>Protein: {meal?.protein || 0}g | Carbs: {meal?.carbs || 0}g | Fats: {meal?.fats || 0}g</p>
       </div>
       {meal?.ingredients && meal.ingredients.length > 0 ? (
         <div className="text-sm">
           <p className="font-medium mb-1">Ingredients:</p>
           <ul className="list-disc list-inside space-y-1">
-            {meal.ingredients.map((ingredient: Ingredient, index: number) => (
+            {meal.ingredients.map((ingredient, index: number) => (
               <li key={index} className="text-gray-600">
-                {ingredient?.amount || ''} {ingredient?.name || 'Unknown Ingredient'} ({ingredient?.calories || 0} cal)
+                {ingredient?.qty || ''} {ingredient?.item || 'Unknown Ingredient'} ({ingredient?.calories || 0} cal)
               </li>
             ))}
           </ul>
@@ -175,99 +148,38 @@ export function Nutrition() {
         )}
 
         {nutritionPlan.multiWeekMealPlans && nutritionPlan.multiWeekMealPlans.length > 0 && nutritionPlan.multiWeekMealPlans[0] ? (
-          Object.entries(nutritionPlan.multiWeekMealPlans[0]).map(([day, dayPlan]: [string, DayPlan]) => (
+          Object.entries(nutritionPlan.multiWeekMealPlans[0]).map(([day, dayPlan]: [string, DailyMealPlan]) => (
             <TabsContent key={day} value={day}>
               <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Breakfast</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-start justify-between">
-                      {renderMealDetails(dayPlan.breakfast)}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => storeToggleMealCompletion(day, dayPlan.breakfast.name, 'breakfast')}
-                      >
-                        {dayPlan.breakfast.completed ? (
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                        ) : (
-                          <CheckCircle2 className="h-5 w-5 text-gray-300" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Lunch</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-start justify-between">
-                      {renderMealDetails(dayPlan.lunch)}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => storeToggleMealCompletion(day, dayPlan.lunch.name, 'lunch')}
-                      >
-                        {dayPlan.lunch.completed ? (
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                        ) : (
-                          <CheckCircle2 className="h-5 w-5 text-gray-300" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Dinner</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-start justify-between">
-                      {renderMealDetails(dayPlan.dinner)}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => storeToggleMealCompletion(day, dayPlan.dinner.name, 'dinner')}
-                      >
-                        {dayPlan.dinner.completed ? (
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                        ) : (
-                          <CheckCircle2 className="h-5 w-5 text-gray-300" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {dayPlan.snacks && dayPlan.snacks.length > 0 && (
+                {/* Render meals from the meals array */}
+                {dayPlan.meals && dayPlan.meals.length > 0 ? (
+                  dayPlan.meals.map((meal, index) => (
+                    <Card key={`${meal.name}-${index}`}>
+                      <CardHeader>
+                        <CardTitle>{meal.mealType?.charAt(0).toUpperCase() + meal.mealType?.slice(1) || `Meal ${index + 1}`}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-start justify-between">
+                          {renderMealDetails(meal)}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => storeToggleMealCompletion(day, meal.name, meal.mealType || 'unknown')}
+                          >
+                            {meal.completed ? (
+                              <CheckCircle2 className="h-5 w-5 text-primary" />
+                            ) : (
+                              <CheckCircle2 className="h-5 w-5 text-gray-300" />
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Snacks</CardTitle>
-                    </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {dayPlan.snacks.map((snack: Meal, index: number) => (
-                          <div key={index} className="flex items-start justify-between">
-                            {renderMealDetails(snack)}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => storeToggleMealCompletion(day, 'snacks', index)}
-                            >
-                              {snack.completed ? (
-                                <CheckCircle2 className="h-5 w-5 text-primary" />
-                              ) : (
-                                <CheckCircle2 className="h-5 w-5 text-gray-300" />
-                              )}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+                      <p className="text-center py-8 text-gray-500">No meals available for {day}</p>
                     </CardContent>
                   </Card>
                 )}
