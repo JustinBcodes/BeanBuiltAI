@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { MealItem, NutritionIngredient, CompletedMealItem, MealProgress } from '@/types/plan-types'; // Use types from plan-types
+import { cn } from '@/lib/utils'
 
 // The structure of dailyMeals received as prop from nutrition/page.tsx
 // which comes from store's nutritionProgress.weeklySchedule[n].meals
@@ -147,37 +148,6 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     return { breakfast, lunch, dinner, snacks };
   })();
 
-  // Memoized toggle handler to prevent unnecessary re-renders
-  const handleMealComplete = useCallback((
-    mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks',
-    mealNameOrSnackIndex: string | number, // Meal name for B/L/D, index for snacks
-    currentStatus: boolean
-  ) => {
-    if (!isHydrated) return; // Prevent action before hydration
-    
-    console.log('🔄 Toggling meal:', { dayOfWeek, mealType, mealNameOrSnackIndex, currentStatus });
-    
-    toggleMealCompletion(dayOfWeek, mealType, mealNameOrSnackIndex);
-    
-    const mealToLog = typeof mealNameOrSnackIndex === 'string' ? mealNameOrSnackIndex : `${mealType} #${mealNameOrSnackIndex + 1}`;
-    toast({
-      title: !currentStatus ? "Meal marked complete!" : "Meal marked incomplete.",
-      description: `${dayOfWeek}: ${mealToLog}`,
-    });
-  }, [isHydrated, dayOfWeek, toggleMealCompletion, toast]);
-
-  // const handleCustomize = async (mealType: string, updatedMeal: MealItem, snackIndex?: number) => {
-  //   // Future implementation for meal customization
-  //   // try {
-  //   //   await customizeMeal(dayOfWeek, mealType, updatedMeal, snackIndex); 
-  //   //   toast({ title: "Meal customized!", description: "Your changes have been saved." });
-  //   // } catch (error) {
-  //   //   toast({ title: "Error customizing meal", description: "Please try again", variant: "destructive" });
-  //   // }
-  //   console.log("Customize action for:", dayOfWeek, mealType, updatedMeal, snackIndex);
-  //   toast({title: "Customize Clicked (Not Implemented)", description: mealType});
-  // };
-
   const renderMeal = (meal: CompletedMealItem | null, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks', snackIndex?: number) => {
     if (!meal) {
       return (
@@ -190,107 +160,48 @@ export function NutritionCard({ dayOfWeek, dailyMeals }: NutritionCardProps) {
     // For snacks, use the index as identifier; for other meals, use the meal name
     const mealIdentifier = mealType === 'snacks' && typeof snackIndex === 'number' ? snackIndex : meal.name;
 
-    const simpleTestClick = () => {
-      alert('🚨 SIMPLE CLICK WORKS!');
-      console.log('🚨 SIMPLE CLICK HANDLER TRIGGERED!');
-    };
-
-    const handleClick = () => {
-      console.log('🔥 CLICK DETECTED ON MEAL CARD!');
-      console.log('🖱️ Meal clicked:', meal.name);
-      console.log('🔍 Debug info:', {
-        isHydrated,
-        mealType,
-        mealIdentifier,
-        completed: meal.completed,
-        dayOfWeek,
-        hasToggleFunction: !!toggleMealCompletion
-      });
-      
-      if (!isHydrated) {
-        console.log('❌ Not hydrated yet, ignoring click');
-        return;
-      }
-      
-      console.log('✅ About to call handleMealComplete');
-      
-      // EMERGENCY FIX: Call the store function directly instead of through useCallback
-      console.log('🚀 Calling toggleMealCompletion directly from store');
-      toggleMealCompletion(dayOfWeek, mealType, mealIdentifier);
-      
-      // Show toast directly
-      toast({
-        title: !meal.completed ? "Meal marked complete!" : "Meal marked incomplete.",
-        description: `${dayOfWeek}: ${meal.name}`,
-      });
-    };
-
     return (
       <div 
         key={meal.name + (snackIndex !== undefined ? snackIndex : '')} 
-        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0 cursor-pointer group hover:bg-muted/30 transition-colors"
-        onClick={handleClick}
+        className="space-y-3 border-b border-border py-4 last:border-b-0 last:pb-0"
       >
-        {/* EMERGENCY SIMPLE TEST */}
-        <div className="flex gap-2 mb-2">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              simpleTestClick();
-            }}
-            className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-          >
-            SIMPLE TEST
-          </button>
-          
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              alert('DIRECT BUTTON WORKS!');
-              console.log('🔥 Direct button clicked');
-            }}
-            className="bg-green-500 text-white px-2 py-1 rounded text-xs"
-          >
-            DIRECT CLICK
-          </button>
-        </div>
-        
-        {/* TEST BUTTON TO VERIFY CLICKS WORK */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            alert('TEST BUTTON CLICKED! If you see this, clicks work.');
-            console.log('🧪 Test button clicked successfully');
-          }}
-          className="bg-red-500 text-white px-2 py-1 rounded text-xs mb-2"
-        >
-          TEST CLICK
-        </button>
-        
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div 
-              className={`flex items-center justify-center h-5 w-5 rounded border-2 transition-colors ${
-                meal.completed 
-                  ? 'bg-green-500 border-green-500' 
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={meal.completed}
+              onClick={() => {
+                console.log('✅ Button clicked!', { meal: meal.name, completed: meal.completed });
+                toggleMealCompletion(dayOfWeek, mealType, mealIdentifier);
+                toast({ 
+                  title: !meal.completed ? "Meal marked as completed!" : "Meal marked as incomplete",
+                  description: `${meal.name} - ${dayOfWeek}`
+                });
+              }}
+              className={cn(
+                "peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+                meal.completed
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "bg-white"
+              )}
             >
               {meal.completed && (
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-full h-full p-[1px]" fill="white" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               )}
-            </div>
+            </button>
             <Utensils className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <h4 className="font-semibold text-base group-hover:text-primary transition-colors">
+            <h4 className="font-semibold text-base">
               {meal.name} <span className="text-xs text-muted-foreground">({mealType.charAt(0).toUpperCase() + mealType.slice(1)}{snackIndex !== undefined ? ` ${snackIndex+1}` : ''})</span>
             </h4>
             {meal.instructions && (
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
                       <Info className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                   </TooltipTrigger>

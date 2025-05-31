@@ -31,7 +31,7 @@ export default function EmergencyTestPage() {
   const handleClick = () => {
     console.log('🚨 CLICK HANDLER CALLED!')
     setClickCount(prev => prev + 1)
-    alert(`Click #${clickCount + 1} detected!`)
+    console.log(`✅ Click #${clickCount + 1} detected! (Alert blocked, but click works)`)
   }
   
   return (
@@ -39,6 +39,9 @@ export default function EmergencyTestPage() {
       <h1>EMERGENCY CLICK TEST</h1>
       <p>Mounted: {mounted ? 'YES' : 'NO'}</p>
       <p>Click count: {clickCount}</p>
+      <p style={{ backgroundColor: 'yellow', color: 'black', padding: '10px', margin: '10px 0' }}>
+        ✅ CLICKS ARE WORKING! Check console for logs and watch the click counter above.
+      </p>
       
       <button 
         style={{ 
@@ -70,11 +73,11 @@ export default function EmergencyTestPage() {
           margin: '10px 0'
         }}
         onClick={() => {
-          console.log('🟢 INLINE CLICK WORKS!')
-          alert('INLINE CLICK WORKS!')
+          console.log('🟢 INLINE CLICK WORKS! (No alert needed)')
+          setClickCount(prev => prev + 100) // Big jump to show it worked
         }}
       >
-        INLINE CLICK TEST
+        INLINE CLICK TEST (Adds 100 to counter)
       </button>
       
       <div 
@@ -87,11 +90,11 @@ export default function EmergencyTestPage() {
           border: '3px solid white'
         }}
         onClick={() => {
-          console.log('🚨 DIV CLICK WORKS!')
-          alert('DIV CLICK WORKS!')
+          console.log('🚨 DIV CLICK WORKS! (No alert needed)')
+          setClickCount(prev => prev + 1000) // Even bigger jump
         }}
       >
-        CLICK THIS DIV TOO
+        CLICK THIS DIV TOO (Adds 1000 to counter)
       </div>
     </div>
   )

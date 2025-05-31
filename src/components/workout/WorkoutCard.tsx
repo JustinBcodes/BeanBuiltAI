@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,36 +40,6 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
   
   // Use state data if available, otherwise fall back to props
   const workoutToRender = dayData || daySchedule;
-
-  // Memoized exercise completion handler
-  const handleExerciseComplete = useCallback((exerciseName: string, exerciseIndex: number) => {
-    if (!isHydrated) return; // Prevent action before hydration
-    
-    console.log('🔄 Toggling exercise:', { dayOfWeek: workoutToRender.dayOfWeek, exerciseName, exerciseIndex });
-    
-    if (workoutToRender.workoutDetails) {
-      toggleExerciseCompletion(workoutToRender.dayOfWeek, exerciseName, exerciseIndex)
-      toast({
-        title: "Exercise updated!",
-        description: `${exerciseName} completion status changed.`,
-      })
-    }
-  }, [isHydrated, workoutToRender.dayOfWeek, workoutToRender.workoutDetails, toggleExerciseCompletion, toast])
-
-  const handleCustomize = async (updatedWorkout: any) => {
-    try {
-      toast({
-        title: "Workout customized!",
-        description: "Your changes have been saved.",
-      })
-    } catch (error) {
-      toast({
-        title: "Error customizing workout",
-        description: "Please try again",
-        variant: "destructive",
-      })
-    }
-  }
 
   if (!workoutToRender) {
     return null
@@ -153,60 +123,40 @@ export function WorkoutCard({ daySchedule }: WorkoutCardProps) {
           {workoutDetails.exercises && workoutDetails.exercises.length > 0 ? (
             <Accordion type="single" collapsible className="space-y-2">
               {workoutDetails.exercises.map((exercise, index) => {
-                const handleExerciseClick = () => {
-                  console.log('🔥 EXERCISE CLICK DETECTED!');
-                  console.log('🖱️ Exercise clicked:', exercise.name);
-                  console.log('🔍 Exercise debug info:', {
-                    isHydrated,
-                    exerciseName: exercise.name,
-                    exerciseIndex: index,
-                    completed: exercise.completed,
-                    dayOfWeek: workoutToRender.dayOfWeek,
-                    hasToggleFunction: !!toggleExerciseCompletion
-                  });
-                  
-                  if (!isHydrated) {
-                    console.log('❌ Not hydrated yet, ignoring exercise click');
-                    return;
-                  }
-                  
-                  console.log('✅ About to call toggleExerciseCompletion directly');
-                  
-                  // EMERGENCY FIX: Call store function directly
-                  console.log('🚀 Calling toggleExerciseCompletion directly from store');
-                  toggleExerciseCompletion(workoutToRender.dayOfWeek, exercise.name, index);
-                  
-                  // Show toast directly
-                  toast({
-                    title: "Exercise updated!",
-                    description: `${exercise.name} completion status changed.`,
-                  });
-                };
-
                 return (
                   <AccordionItem value={`exercise-${index}`} key={exercise.name + index} className="border bg-background rounded-md shadow-sm hover:shadow-md transition-shadow">
                     <AccordionTrigger className="px-4 py-3 hover:no-underline">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-3">
-                          <div
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={exercise.completed}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleExerciseClick();
+                              console.log('✅ Exercise button clicked!', { exercise: exercise.name, completed: exercise.completed });
+                              toggleExerciseCompletion(workoutToRender.dayOfWeek, exercise.name, index);
+                              toast({
+                                title: !exercise.completed ? "Exercise marked as completed!" : "Exercise marked as incomplete",
+                                description: `${exercise.name}`
+                              });
                             }}
-                            className={`cursor-pointer flex items-center justify-center h-5 w-5 rounded border-2 transition-colors ${
-                              exercise.completed 
-                                ? 'bg-green-500 border-green-500' 
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
+                            className={cn(
+                              "peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                              "disabled:cursor-not-allowed disabled:opacity-50",
+                              exercise.completed
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "bg-white"
+                            )}
                             aria-label={`Mark ${exercise.name} as ${exercise.completed ? 'incomplete' : 'complete'}`}
                           >
                             {exercise.completed && (
-                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-full h-full p-[1px]" fill="white" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                               </svg>
                             )}
-                          </div>
+                          </button>
                           <span className={cn(
                             "font-medium text-sm text-left",
                             exercise.completed ? "line-through text-gray-500" : "text-gray-800"
