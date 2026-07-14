@@ -31,15 +31,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const showSidebar = profile?.hasCompletedOnboarding && !isOnboardingPage
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="app-shell flex h-screen bg-background text-foreground">
       {/* Sidebar for larger screens - only show if onboarding is complete */}
       {showSidebar && (
-        <div className="hidden lg:block">
+        <div className="hidden w-[17rem] shrink-0 lg:block">
           <motion.div
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30, duration: 0.2 }}
-            className="h-screen border-r border-border"
+            className="h-screen border-r border-border/70"
           >
             <Sidebar />
           </motion.div>
@@ -73,17 +73,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Only show Header with hamburger menu if sidebar should be shown */}
         <Header onMobileMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} showMenuButton={!!showSidebar} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="app-main flex-1 overflow-y-auto p-4 md:p-7 lg:p-10">
           <motion.div
             key={pathname} // Add key to re-trigger animation on route change
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="max-w-7xl mx-auto"
+            className="mx-auto w-full max-w-[86rem]"
           >
             {children}
           </motion.div>
@@ -91,4 +91,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   )
-} 
+}

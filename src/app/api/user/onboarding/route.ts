@@ -5,28 +5,11 @@ import { prisma } from '@/lib/prisma'
 import { createStaticWorkoutPlan } from '@/data/workouts'
 import { createStaticNutritionPlan } from '@/data/meals'
 import { z } from 'zod'
+import { onboardingSchema, profileUpdateSchema } from '@/lib/validations/api-schemas'
 
 // Force this route to be dynamic and disable caching
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-
-// Zod schema for onboarding data validation
-const onboardingSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  age: z.number().int().min(13, "Age must be at least 13").max(100),
-  sex: z.enum(['male', 'female']), // Adjust if other values are supported by your models/logic
-  currentWeight: z.number().min(20).max(350), // lbs
-  targetWeight: z.number().min(20).max(350), // lbs
-  height: z.number().int().min(36, "Height must be at least 36 inches (3ft)").max(96, "Height must be at most 96 inches (8ft)"), // total inches from form
-  goalType: z.enum(['weight_loss', 'muscle_gain', 'general_fitness', 'strength_gain']),
-  experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
-  preferredWorkoutDays: z.array(z.string()).min(1, "At least one workout day is required"),
-  // Optional fields - to be added to form later for full personalization
-  weakPoints: z.array(z.string()).optional(),
-  favoriteFoods: z.array(z.string()).optional(),
-  allergies: z.array(z.string()).optional(),
-  targetDate: z.string().optional().refine((date) => !date || !isNaN(new Date(date).getTime()), "Invalid target date format"),
-});
 
 export async function POST(req: Request) {
   let sessionUser = null; // For potential rollback
@@ -167,22 +150,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Basic Zod schema for profile update (can be expanded)
-const profileUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
-  age: z.number().int().min(13).max(100).optional(),
-  sex: z.enum(['male', 'female']).optional(),
-  goalType: z.enum(['weight_loss', 'muscle_gain', 'general_fitness', 'strength_gain', 'maintenance']).optional(),
-  experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  currentWeight: z.number().min(20).max(700).optional(),
-  targetWeight: z.number().min(20).max(700).optional(),
-  height: z.number().int().min(36).max(96).optional(),
-  preferredWorkoutDays: z.array(z.string()).min(1).optional(),
-  weakPoints: z.array(z.string()).optional(),
-  favoriteFoods: z.array(z.string()).optional(),
-  allergies: z.array(z.string()).optional(),
-  targetDate: z.string().optional().refine((date) => !date || !isNaN(new Date(date).getTime()), "Invalid target date format"),
-});
+// Basic Zod schema for profile update (imported from lib)
 
 const PLAN_AFFECTING_FIELDS: (keyof z.infer<typeof profileUpdateSchema>)[] = [
   'age', 'sex', 'goalType', 'experienceLevel', 'currentWeight', 'targetWeight', 'height', 'preferredWorkoutDays'

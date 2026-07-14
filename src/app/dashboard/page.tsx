@@ -466,7 +466,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 p-2 md:p-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome Back, {profile?.name || 'User'}!</h1>
@@ -475,7 +475,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Daily Snapshot Section */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3">
         {/* Nutrition Plan Card */}
         {nutritionPlan && isValidNutritionPlan(nutritionPlan) ? (
           <div>
@@ -540,7 +540,7 @@ export default function DashboardPage() {
 
         {/* Workout Plan Card */}
         {hasValidWorkoutPlan ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-full">
             <Card className="rounded-2xl shadow-md h-full">
               <CardHeader>
                 <CardTitle className="text-xl text-foreground flex items-center gap-2">

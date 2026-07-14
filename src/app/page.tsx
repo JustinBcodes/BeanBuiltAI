@@ -1,71 +1,377 @@
-import { Metadata } from 'next'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Zap, Utensils, BarChart3 } from 'lucide-react'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'BeanBuilt AI - Your Personal Fitness Assistant',
-  description: 'Track workouts, generate meal plans, and hit your goals with AI',
+import { useRef } from 'react'
+import Link from 'next/link'
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from 'framer-motion'
+import {
+  ArrowRight,
+  BarChart3,
+  Check,
+  Star,
+  Utensils,
+  Zap,
+} from 'lucide-react'
+import styles from './landing.module.css'
+
+const features = [
+  {
+    icon: Zap,
+    title: 'Smart Workout Plans',
+    description:
+      'Get personalized workout routines tailored to your goals and fitness level, powered by AI.',
+  },
+  {
+    icon: Utensils,
+    title: 'AI Nutrition Coach',
+    description:
+      'AI-generated meal plans and nutrition tracking to support your fitness journey effectively.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Progress Analytics',
+    description:
+      'Track your progress with detailed analytics, insights, and visual charts.',
+  },
+]
+
+const testimonials = [
+  {
+    quote:
+      'BeanBuilt rebuilt my entire routine in a week. Down 18 lbs and finally consistent.',
+    initials: 'JE',
+    name: 'Jordan Ellis',
+    role: 'Member since 2024',
+    tone: 'lime',
+  },
+  {
+    quote:
+      'The meal plans actually fit my schedule. No more guessing what to eat before lifts.',
+    initials: 'PN',
+    name: 'Priya Nair',
+    role: 'Marathon runner',
+    tone: 'mint',
+  },
+  {
+    quote:
+      'Feels like having a coach and dietitian in my pocket. Worth every cent.',
+    initials: 'MW',
+    name: 'Marcus Webb',
+    role: 'Member since 2023',
+    tone: 'gold',
+  },
+]
+
+const stats = [
+  ['150+', 'Active users'],
+  ['50K+', 'Workouts logged'],
+  ['4.9/5', 'Average rating'],
+  ['92%', 'Hit their goals'],
+]
+
+const reveal = {
+  hidden: { opacity: 0, y: 34 },
+  visible: { opacity: 1, y: 0 },
 }
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto px-4 py-16 md:py-24">
-        <div className="max-w-3xl mx-auto text-center space-y-6 md:space-y-8">
-          <h1 className="text-4xl md:text-6xl font-bold text-primary">
-            Welcome to BeanBuilt AI
-          </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground">
-            Your Personal Fitness & Nutrition Co-Pilot
-          </p>
-          <p className="text-lg text-foreground/80">
-            Achieve your health goals with AI-powered workout routines, personalized meal plans, and intelligent progress tracking.
-          </p>
-          <div className="pt-6 md:pt-8">
-            <Button
-              asChild
-              size="lg"
-              className="shadow-lg text-lg px-8 py-6"
-            >
-              <Link href="/dashboard" className="flex items-center gap-2.5">
-                Start My Fitness Journey
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
-          </div>
-        </div>
+  const heroRef = useRef<HTMLElement>(null)
+  const reduceMotion = useReducedMotion()
+  const { scrollYProgress } = useScroll()
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
 
-        <div className="grid md:grid-cols-3 gap-8 mt-16 md:mt-24">
-          <div className="bg-card p-6 rounded-lg shadow-md text-center hover:shadow-xl transition-shadow duration-300">
-            <div className="flex justify-center mb-4">
-                <Zap className="h-10 w-10 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">Smart Workout Plans</h3>
-            <p className="text-muted-foreground text-sm">
-              Get personalized workout routines tailored to your goals and fitness level, powered by AI.
-            </p>
-          </div>
-          <div className="bg-card p-6 rounded-lg shadow-md text-center hover:shadow-xl transition-shadow duration-300">
-            <div className="flex justify-center mb-4">
-                <Utensils className="h-10 w-10 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">AI Nutrition Coach</h3>
-            <p className="text-muted-foreground text-sm">
-              AI-generated meal plans and nutrition tracking to support your fitness journey effectively.
-            </p>
-          </div>
-          <div className="bg-card p-6 rounded-lg shadow-md text-center hover:shadow-xl transition-shadow duration-300">
-            <div className="flex justify-center mb-4">
-                <BarChart3 className="h-10 w-10 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">Progress Analytics</h3>
-            <p className="text-muted-foreground text-sm">
-              Track your progress with detailed analytics, insights, and visual charts.
-            </p>
-          </div>
+  const heroY = useTransform(heroProgress, [0, 1], [0, reduceMotion ? 0 : 120])
+  const heroScale = useTransform(heroProgress, [0, 1], [1, reduceMotion ? 1 : 0.92])
+  const heroOpacity = useTransform(heroProgress, [0, 0.8], [1, 0.15])
+
+  return (
+    <main className={styles.site}>
+      <motion.div className={styles.scrollProgress} style={{ scaleX: scrollYProgress }} />
+
+      <header className={styles.header}>
+        <Link className={styles.brand} href="/" aria-label="BeanBuilt AI home">
+          <span className={styles.brandMark}>B</span>
+          <span>beanbuilt ai</span>
+        </Link>
+
+        <nav className={styles.nav} aria-label="Main navigation">
+          <a href="#features">Features</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#pricing">Pricing</a>
+        </nav>
+
+        <Link className={styles.navCta} href="/api/auth/signin">
+          get started
+        </Link>
+      </header>
+
+      <section ref={heroRef} className={styles.hero} aria-labelledby="hero-heading">
+        <motion.div
+          className={styles.heroAtmosphere}
+          style={{ x: '-50%', y: heroY, scale: heroScale, opacity: heroOpacity }}
+          aria-hidden="true"
+        >
+          <span className={styles.orbitOuter} />
+          <span className={styles.orbitInner} />
+          <span className={styles.glowTop} />
+          <span className={styles.glowBottom} />
+        </motion.div>
+
+        <motion.p
+          className={`${styles.heroWord} ${styles.heroWordLeft}`}
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        >
+          train
+        </motion.p>
+        <motion.p
+          className={`${styles.heroWord} ${styles.heroWordRight}`}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.08 }}
+        >
+          smarter
+        </motion.p>
+
+        <motion.div
+          className={styles.heroContent}
+          style={{ x: '-50%', y: heroY, scale: heroScale, opacity: heroOpacity }}
+        >
+          <motion.h1
+            id="hero-heading"
+            className={styles.heroTitle}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, ease: 'easeOut', delay: 0.12 }}
+          >
+            <span>beanbuilt ai</span>
+            <strong>today</strong>
+          </motion.h1>
+          <motion.p
+            className={styles.heroCopy}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.28 }}
+          >
+            your personal fitness &amp; nutrition co-pilot — ai
+            <br />
+            workouts, meal plans, and progress tracking, built
+            <br />
+            around you.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.4 }}
+          >
+            <Link className={styles.primaryCta} href="/api/auth/signin">
+              start my fitness journey <ArrowRight aria-hidden="true" />
+            </Link>
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          className={`${styles.floatingStat} ${styles.floatingStatRight}`}
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.5 }}
+        >
+          <span className={styles.statLine} />
+          <strong>150+</strong>
+          <small>active users</small>
+        </motion.div>
+        <motion.div
+          className={`${styles.floatingStat} ${styles.floatingStatLeft}`}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.6 }}
+        >
+          <strong>50K+</strong>
+          <span className={styles.statLine} />
+          <small>workouts logged</small>
+        </motion.div>
+        <motion.div
+          className={`${styles.floatingStat} ${styles.floatingStatBottom}`}
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.7 }}
+        >
+          <span className={styles.statLine} />
+          <strong>4.9/5</strong>
+          <small>average rating</small>
+        </motion.div>
+
+        <div className={styles.scrollCue} aria-hidden="true">
+          <span>scroll to explore</span>
+          <i />
         </div>
-      </div>
-    </div>
+      </section>
+
+      <section className={styles.contentShell}>
+        <motion.div
+          className={styles.statsGrid}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ staggerChildren: 0.1 }}
+        >
+          {stats.map(([value, label]) => (
+            <motion.div key={label} variants={reveal} transition={{ duration: 0.55 }}>
+              <strong>{value}</strong>
+              <span>{label}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <section id="features" className={styles.section} aria-labelledby="features-heading">
+          <motion.div
+            className={styles.sectionHeading}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.55 }}
+            variants={reveal}
+            transition={{ duration: 0.65 }}
+          >
+            <span>capabilities</span>
+            <h2 id="features-heading">
+              Everything you need,
+              <br />
+              engineered by AI
+            </h2>
+          </motion.div>
+
+          <motion.div
+            className={styles.cardGrid}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ staggerChildren: 0.12 }}
+          >
+            {features.map((feature) => {
+              const Icon = feature.icon
+              return (
+                <motion.article
+                  className={styles.featureCard}
+                  key={feature.title}
+                  variants={reveal}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  whileHover={reduceMotion ? undefined : { y: -8 }}
+                >
+                  <div className={styles.iconBox}>
+                    <Icon aria-hidden="true" />
+                  </div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.description}</p>
+                </motion.article>
+              )
+            })}
+          </motion.div>
+        </section>
+
+        <section id="reviews" className={`${styles.section} ${styles.reviewSection}`} aria-labelledby="reviews-heading">
+          <motion.div
+            className={styles.sectionHeading}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.55 }}
+            variants={reveal}
+            transition={{ duration: 0.65 }}
+          >
+            <span>testimonials</span>
+            <h2 id="reviews-heading">Loved by people chasing results</h2>
+            <div className={styles.reviewSummary}>
+              <span aria-label="5 out of 5 stars">★★★★★</span>
+              <p>4.9 out of 5 — 12,400+ reviews</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className={styles.cardGrid}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ staggerChildren: 0.12 }}
+          >
+            {testimonials.map((testimonial) => (
+              <motion.article
+                className={styles.reviewCard}
+                key={testimonial.name}
+                variants={reveal}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                <div className={styles.stars} aria-label="5 out of 5 stars">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} fill="currentColor" aria-hidden="true" />
+                  ))}
+                </div>
+                <blockquote>“{testimonial.quote}”</blockquote>
+                <div className={styles.reviewer}>
+                  <span className={`${styles.avatar} ${styles[testimonial.tone]}`}>
+                    {testimonial.initials}
+                  </span>
+                  <p>
+                    <strong>{testimonial.name}</strong>
+                    <small>{testimonial.role}</small>
+                  </p>
+                </div>
+              </motion.article>
+            ))}
+          </motion.div>
+        </section>
+
+        <section id="pricing" className={`${styles.section} ${styles.pricingSection}`} aria-labelledby="pricing-heading">
+          <motion.div
+            className={styles.pricingPanel}
+            initial={{ opacity: 0, y: 40, scale: reduceMotion ? 1 : 0.98 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+          >
+            <div className={styles.pricingCopy}>
+              <span className={styles.eyebrow}>simple pricing</span>
+              <h2 id="pricing-heading">Build a stronger you.</h2>
+              <p>
+                Your adaptive training plan, nutrition guidance, and every progress insight in one membership.
+              </p>
+              <ul>
+                {['Unlimited AI plans', 'Adaptive weekly coaching', 'Progress analytics'].map((item) => (
+                  <li key={item}>
+                    <Check aria-hidden="true" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className={styles.priceBlock}>
+              <p><strong>$12</strong><span>/ month</span></p>
+              <small>Cancel anytime. Start building today.</small>
+              <Link className={styles.primaryCta} href="/api/auth/signin">
+                get started <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+          </motion.div>
+        </section>
+      </section>
+
+      <footer className={styles.footer}>
+        <Link className={styles.brand} href="/">
+          <span className={styles.brandMark}>B</span>
+          <span>beanbuilt ai</span>
+        </Link>
+        <p>AI fitness, built around you.</p>
+        <div>
+          <a href="#features">Features</a>
+          <a href="#reviews">Reviews</a>
+          <Link href="/api/auth/signin">sign in</Link>
+        </div>
+      </footer>
+    </main>
   )
 }

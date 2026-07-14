@@ -52,17 +52,17 @@ export default async function middleware(request: NextRequest) {
       : 'next-auth.session-token'
   })
   
-  // 🔒 5. If no token, redirect to sign-in (but not if already on sign-in)
+  // 🔒 5. If no token, redirect to sign-in (except for auth pages and landing page)
   if (!token) {
-    if (url.pathname !== '/auth/signin') {
+    if (url.pathname !== '/auth/signin' && url.pathname !== '/') {
       console.log(`🚀 No token, redirecting ${url.pathname} → /auth/signin`)
       url.pathname = '/auth/signin'
       // Add the original path as a query parameter for post-login redirect
       url.searchParams.set('from', request.nextUrl.pathname)
       return NextResponse.redirect(url)
     }
-    // Already on sign-in page, allow access
-    console.log(`✅ No token but on sign-in page, allowing access`)
+    // Already on sign-in page or landing page, allow access
+    console.log(`✅ No token but on public page, allowing access`)
     return NextResponse.next()
   }
 

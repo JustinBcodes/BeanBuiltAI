@@ -1,100 +1,185 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
  
 @layer base {
   :root {
-    --background: 0 0% 100%; /* Light background */
-    --foreground: 222.2 84% 4.9%; /* Dark foreground */
+    --background: 132 22% 3%;
+    --foreground: 100 14% 94%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 130 14% 7%;
+    --card-foreground: 100 14% 94%;
  
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 130 14% 7%;
+    --popover-foreground: 100 14% 94%;
  
-    --primary: 173 58% 48%; /* Teal primary color */
-    --primary-foreground: 0 0% 100%; /* White text on teal */
+    --primary: 83 100% 62%;
+    --primary-foreground: 110 43% 7%;
  
-    --secondary: 210 40% 96.1%; /* Light secondary */
-    --secondary-foreground: 222.2 47.4% 11.2%; /* Dark secondary-foreground */
+    --secondary: 128 13% 12%;
+    --secondary-foreground: 100 14% 94%;
  
-    --muted: 210 40% 96.1%; /* Light muted */
-    --muted-foreground: 215.4 16.3% 46.9%; /* Muted foreground */
+    --muted: 128 12% 12%;
+    --muted-foreground: 110 5% 59%;
  
-    --accent: 173 58% 48%; /* Teal accent color */
-    --accent-foreground: 0 0% 100%; /* White text on teal */
+    --accent: 91 32% 15%;
+    --accent-foreground: 83 100% 72%;
  
-    --destructive: 0 84.2% 60.2%; /* Light destructive */
-    --destructive-foreground: 0 0% 98%; /* Light destructive-foreground */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%; /* Light border */
-    --input: 214.3 31.8% 91.4%; /* Light input background */
-    --ring: 173 58% 48%; /* Ring color based on teal */
+    --border: 125 10% 17%;
+    --input: 125 10% 20%;
+    --ring: 83 100% 62%;
  
-    --radius: 0.75rem; /* Your existing radius */
+    --radius: 0.75rem;
  
-    --chart-1: 173 58% 48%; /* Teal */
-    --chart-2: 173 58% 58%;
-    --chart-3: 173 58% 68%;
-    --chart-4: 173 58% 78%;
-    --chart-5: 173 58% 88%;
+    --chart-1: 83 100% 62%;
+    --chart-2: 147 60% 54%;
+    --chart-3: 48 90% 60%;
+    --chart-4: 104 48% 54%;
+    --chart-5: 74 68% 70%;
   }
  
   .dark {
-    --background: 220 21% 5%;
-    --foreground: 0 0% 98%;
+    --background: 132 22% 3%;
+    --foreground: 100 14% 94%;
 
-    --card: 220 21% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 130 14% 7%;
+    --card-foreground: 100 14% 94%;
  
-    --popover: 220 21% 7%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 130 14% 7%;
+    --popover-foreground: 100 14% 94%;
  
-    --primary: 173 58% 48%; /* Teal primary color */
-    --primary-foreground: 0 0% 100%; /* White text on teal */
+    --primary: 83 100% 62%;
+    --primary-foreground: 110 43% 7%;
  
-    --secondary: 220 21% 10%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 128 13% 12%;
+    --secondary-foreground: 100 14% 94%;
  
-    --muted: 220 21% 10%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 128 12% 12%;
+    --muted-foreground: 110 5% 59%;
  
-    --accent: 173 58% 48%; /* Teal accent color */
-    --accent-foreground: 0 0% 100%; /* White text on teal */
+    --accent: 91 32% 15%;
+    --accent-foreground: 83 100% 72%;
  
-    --destructive: 0 72% 51%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 21% 15%;
-    --input: 220 21% 15%;
-    --ring: 173 58% 48%; /* Teal ring color */
- 
-    /* --radius is the same for both themes */
- 
-    /* Chart colors using teal theme */
-    --chart-1: 173 58% 48%; /* Teal */
-    --chart-2: 173 58% 58%;
-    --chart-3: 173 58% 68%;
-    --chart-4: 173 58% 78%;
-    --chart-5: 173 58% 88%;
+    --border: 125 10% 17%;
+    --input: 125 10% 20%;
+    --ring: 83 100% 62%;
   }
 }
  
 @layer base {
-  /* * {
-    @apply border-border; // Removing this for now, apply borders explicitly
-  } */
+  * {
+    @apply border-border;
+  }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif; /* Ensure Inter is imported in layout.tsx */
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    font-family: var(--font-inter, Inter), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: radial-gradient(circle at 75% 0%, hsl(var(--primary) / 0.035), transparent 30rem);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-background/60 backdrop-blur-xl border-border/50 shadow-glass dark:shadow-glass-dark;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Premium subtle gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70;
   }
 }
 
 @layer components {
+  /* Elevate form inputs */
   input, textarea, select {
-    /* Using theme variables for inputs now */
-    @apply bg-input text-foreground placeholder:text-muted-foreground border border-border rounded-lg focus:border-primary focus:ring-ring/40;
-    /* Consider more specific selectors if these are too broad */
+    @apply bg-background/40 text-foreground placeholder:text-muted-foreground border border-input rounded-lg focus:border-primary/60 focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200;
+  }
+
+  button, input, textarea, select {
+    font: inherit;
+  }
+}
+
+.app-main {
+  background:
+    radial-gradient(circle at 82% 4%, hsl(var(--primary) / 0.055), transparent 28rem),
+    hsl(var(--background));
+}
+
+.app-shell .bg-white,
+.app-shell .bg-gray-50,
+.app-shell .bg-gray-100,
+.app-shell .bg-gray-200 {
+  background-color: hsl(var(--card)) !important;
+}
+
+.app-shell .text-gray-900,
+.app-shell .text-gray-800,
+.app-shell .text-gray-700 {
+  color: hsl(var(--foreground)) !important;
+}
+
+.app-shell .text-gray-600,
+.app-shell .text-gray-500,
+.app-shell .text-gray-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.app-shell .border-gray-200,
+.app-shell .border-gray-300,
+.app-shell .border-gray-400 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.app-shell .bg-blue-50,
+.app-shell .bg-green-50,
+.app-shell .bg-green-100,
+.app-shell .bg-blue-100 {
+  background-color: hsl(var(--accent)) !important;
+}
+
+.app-shell .text-blue-600,
+.app-shell .text-blue-700,
+.app-shell .text-blue-800,
+.app-shell .text-green-600,
+.app-shell .text-green-700,
+.app-shell .text-green-800 {
+  color: hsl(var(--primary)) !important;
+}
+
+.app-shell .border-blue-200,
+.app-shell .border-green-200 {
+  border-color: hsl(var(--primary) / 0.25) !important;
+}
+
+.app-shell ::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.app-shell ::-webkit-scrollbar-thumb {
+  border: 2px solid hsl(var(--background));
+  border-radius: 999px;
+  background: hsl(var(--muted));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
