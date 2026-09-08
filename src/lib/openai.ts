@@ -1,14 +1,12 @@
+import { parseWorkoutPlan, parseNutritionPlan } from '@/lib/ai-plan-validation'
 import OpenAI from 'openai'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY environment variable');
+let client: OpenAI | undefined;
+function getOpenAI() {
+  if (!process.env.OPENAI_API_KEY) throw new Error('AI generation is not configured');
+  return client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 55000, maxRetries: 1 });
 }
-
-// Configure OpenAI API
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
 
 interface WorkoutPlanParams {
   goalType: string;
@@ -20,8 +18,8 @@ interface WorkoutPlanParams {
   height: number; // cm - for consistency, though workout might not strictly need it like nutrition
   preferredWorkoutDays: string[];
   // Optional, as form might not provide them yet
-  weakPoints?: string[]; 
-  targetDate?: string;    
+  weakPoints?: string[];
+  targetDate?: string;
 }
 
 interface NutritionPlanParams {
@@ -34,93 +32,10 @@ interface NutritionPlanParams {
   // Optional, as form might not provide them yet
   favoriteFoods?: string[];
   allergies?: string[];
-  targetDate?: string; 
+  targetDate?: string;
   // currentWeight: number; // kg - already have `weight`
   // targetWeight: number;  // kg - For nutrition, target weight is good context
   targetWeight?: number;
-}
-
-// Validate and restructure JSON from AI
-function validateAndFixWorkoutPlanJson(jsonString: string): any {
-  // First clean up any markdown formatting or code blocks
-  let cleanedJsonString = jsonString;
-  
-  // Remove markdown code blocks if present
-  const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    cleanedJsonString = codeBlockMatch[1];
-  }
-  
-  // Remove comments which are invalid in JSON
-  cleanedJsonString = cleanedJsonString.replace(/\/\/.*$/gm, '');
-  
-  try {
-    // Try to parse the cleaned string
-    const parsed = JSON.parse(cleanedJsonString);
-    
-    // Basic validation
-    if (!parsed.weeklySchedule) {
-      parsed.weeklySchedule = [];
-    }
-    
-    // Ensure planName and planType exist
-    if (!parsed.planName) {
-      parsed.planName = "Customized 7-Day Workout Plan";
-    }
-    
-    if (!parsed.planType) {
-      parsed.planType = "general";
-    }
-    
-    return parsed;
-  } catch (error) {
-    console.error("Workout plan JSON parsing failed, attempting to fix:", error);
-    
-    // If parsing fails, attempt more aggressive JSON repair
-    try {
-      // Fallback to a very simplistic valid structure if all parsing fails
-      return {
-        planName: "Basic Workout Plan",
-        planType: "general",
-        weeklySchedule: [
-          {
-            dayOfWeek: "Monday",
-            isRestDay: false,
-            workoutDetails: {
-              workoutName: "Full Body Workout",
-              warmUp: "5 min light cardio, dynamic stretching",
-              exercises: [
-                {
-                  name: "Squats",
-                  sets: 3,
-                  reps: "10-12",
-                  weight: "moderate",
-                  notes: "Focus on form and depth"
-                },
-                {
-                  name: "Push-ups",
-                  sets: 3,
-                  reps: "10-15",
-                  weight: "bodyweight",
-                  notes: "Modify on knees if needed"
-                },
-                {
-                  name: "Dumbbell Rows",
-                  sets: 3,
-                  reps: "10-12 per arm",
-                  weight: "light to moderate",
-                  notes: "Focus on squeezing shoulder blades"
-                }
-              ],
-              coolDown: "5 min static stretching"
-            }
-          }
-        ]
-      };
-    } catch (fallbackError) {
-      throw new Error(`Failed to create valid workout plan JSON: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
 }
 
 export async function generateWorkoutPlan(params: WorkoutPlanParams) {
@@ -139,18 +54,18 @@ export async function generateWorkoutPlan(params: WorkoutPlanParams) {
       targetDate: params.targetDate || ''
     };
 
-    const systemPrompt = `You are a professional fitness trainer specialized in creating personalized workout plans. 
+    const systemPrompt = `You are a professional fitness trainer specialized in creating personalized workout plans.
     RESPOND ONLY WITH VALID JSON without any comments, explanations, or extra text.
     The JSON must strictly follow the structure requested in the user prompt.`;
 
-    const userPrompt = `Create a 7-day workout plan for a ${safeParams.age}-year-old ${safeParams.sex}, who is ${safeParams.experienceLevel} with the goal of ${safeParams.goalType}. 
+    const userPrompt = `Create a 7-day workout plan for a ${safeParams.age}-year-old ${safeParams.sex}, who is ${safeParams.experienceLevel} with the goal of ${safeParams.goalType}.
     Their current weight is ${safeParams.currentWeight} kg, target weight is ${safeParams.targetWeight} kg, and height is ${safeParams.height} cm.
-    ${safeParams.preferredWorkoutDays.length > 0 ? 
+    ${safeParams.preferredWorkoutDays.length > 0 ?
       `They prefer to work out on: ${safeParams.preferredWorkoutDays.join(', ')}.` : ''}
-    ${safeParams.weakPoints.length > 0 ? 
+    ${safeParams.weakPoints.length > 0 ?
       `Focus on these weak points: ${safeParams.weakPoints.join(', ')}.` : ''}
     ${safeParams.targetDate ? `They want to reach their target by: ${safeParams.targetDate}.` : ''}
-    
+
     Your response must be a valid JSON object with this structure:
 
     {
@@ -168,7 +83,7 @@ export async function generateWorkoutPlan(params: WorkoutPlanParams) {
                 "name": "Bench Press",
                 "sets": 3,
                 "reps": "8-10",
-                "weight": "moderate/heavy",
+                "rest": "60�90 seconds",
                 "notes": "Focus on form, keep shoulders back"
               }
             ],
@@ -177,7 +92,7 @@ export async function generateWorkoutPlan(params: WorkoutPlanParams) {
         }
       ]
     }
-    
+
     Include entries for all 7 days of the week.
     For rest days, set "isRestDay": true and omit the workoutDetails field.
     Provide NO COMMENTS or explanations, only the JSON response.`;
@@ -188,7 +103,7 @@ export async function generateWorkoutPlan(params: WorkoutPlanParams) {
     ];
 
     // Use gpt-3.5-turbo for compatibility
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages,
       temperature: 0.5, // Lower temperature for more consistent output
@@ -196,123 +111,12 @@ export async function generateWorkoutPlan(params: WorkoutPlanParams) {
     });
 
     const workoutPlanString = response.choices[0]?.message?.content || '';
-    console.log("Received workout plan response length:", workoutPlanString.length);
-    
-    // Validate and fix the JSON response
-    return validateAndFixWorkoutPlanJson(workoutPlanString);
-  } catch (error) {
-    console.error('Failed to generate workout plan:', error);
-    throw new Error(`Failed to generate workout plan: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
 
-// Validate and restructure JSON from AI for nutrition plans
-function validateAndFixNutritionPlanJson(jsonString: string): any {
-  // First clean up any markdown formatting or code blocks
-  let cleanedJsonString = jsonString;
-  
-  // Remove markdown code blocks if present
-  const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    cleanedJsonString = codeBlockMatch[1];
-  }
-  
-  // Remove comments which are invalid in JSON
-  cleanedJsonString = cleanedJsonString.replace(/\/\/.*$/gm, '');
-  
-  try {
-    // Try to parse the cleaned string
-    const parsed = JSON.parse(cleanedJsonString);
-    
-    // Basic validation
-    if (!parsed.weeklyMealPlan) {
-      parsed.weeklyMealPlan = [];
-    }
-    
-    // Ensure the structure is correct
-    if (!Array.isArray(parsed.weeklyMealPlan) && typeof parsed.weeklyMealPlan === 'object') {
-      // Convert from object format to array format if needed
-      const arrayFormat = Object.entries(parsed.weeklyMealPlan).map(([dayOfWeek, mealData]) => ({
-        dayOfWeek: dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1),
-        meals: Array.isArray((mealData as any)?.meals) ? (mealData as any).meals : []
-      }));
-      
-      parsed.weeklyMealPlan = arrayFormat;
-    }
-    
-    // Ensure dailyTargets exist
-    if (!parsed.dailyTargets) {
-      parsed.dailyTargets = {
-        calories: 2000,
-        proteinGrams: 150,
-        carbGrams: 200,
-        fatGrams: 70
-      };
-    }
-    
-    // Ensure planName and planType exist
-    if (!parsed.planName) {
-      parsed.planName = "Customized 7-Day Nutrition Plan";
-    }
-    
-    if (!parsed.planType) {
-      parsed.planType = "general";
-    }
-    
-    return parsed;
+    // Validate and fix the JSON response
+    return parseWorkoutPlan(workoutPlanString, { goalType: params.goalType, experienceLevel: params.experienceLevel, preferredDays: params.preferredWorkoutDays });
   } catch (error) {
-    console.error("JSON parsing failed, attempting to fix:", error);
-    
-    // If parsing fails, attempt more aggressive JSON repair
-    try {
-      // Fallback to a very simplistic valid structure if all parsing fails
-      return {
-        planName: "Basic Nutrition Plan",
-        planType: "general",
-        dailyTargets: {
-          calories: 2000,
-          proteinGrams: 150,
-          carbGrams: 200,
-          fatGrams: 70
-        },
-        weeklyMealPlan: [
-          {
-            dayOfWeek: "Monday",
-            meals: [
-              {
-                mealType: "Breakfast",
-                name: "Default Breakfast",
-                description: "A balanced breakfast",
-                calories: 500,
-                protein: 30,
-                carbs: 50,
-                fats: 15
-              },
-              {
-                mealType: "Lunch",
-                name: "Default Lunch",
-                description: "A balanced lunch",
-                calories: 700,
-                protein: 40,
-                carbs: 70,
-                fats: 20
-              },
-              {
-                mealType: "Dinner",
-                name: "Default Dinner",
-                description: "A balanced dinner",
-                calories: 600,
-                protein: 35,
-                carbs: 60,
-                fats: 15
-              }
-            ]
-          }
-        ]
-      };
-    } catch (fallbackError) {
-      throw new Error(`Failed to create valid nutrition plan JSON: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    console.error('AI workout generation failed validation or service request');
+    throw new Error('Unable to generate a complete workout plan. Please try again.');
   }
 }
 
@@ -332,7 +136,7 @@ export async function generateNutritionPlan(params: NutritionPlanParams) {
       targetWeight: params.targetWeight || params.weight || 70
     };
 
-    const systemPrompt = `You are a professional nutritionist specialized in creating personalized meal plans. 
+    const systemPrompt = `You are a professional nutritionist specialized in creating personalized meal plans.
     RESPOND ONLY WITH VALID JSON without any comments, explanations, or extra text.
     The JSON must strictly follow the structure requested in the user prompt.`;
 
@@ -342,7 +146,7 @@ export async function generateNutritionPlan(params: NutritionPlanParams) {
     ${safeParams.favoriteFoods.length > 0 ? `They prefer these foods: ${safeParams.favoriteFoods.join(', ')}.` : ''}
     ${safeParams.allergies.length > 0 ? `They have allergies to: ${safeParams.allergies.join(', ')}.` : ''}
     ${safeParams.targetDate ? `They want to reach their target by: ${safeParams.targetDate}.` : ''}
-    
+
     Your response must be a valid JSON object with this structure:
 
     {
@@ -361,7 +165,8 @@ export async function generateNutritionPlan(params: NutritionPlanParams) {
             {
               "mealType": "Breakfast",
               "name": "Protein Oatmeal",
-              "description": "Oatmeal with whey protein",
+              "ingredients": [{ "item": "Oats", "qty": "40 g" }],
+              "instructions": "Cook oats according to package instructions.",
               "calories": 450,
               "protein": 30,
               "carbs": 45,
@@ -371,7 +176,7 @@ export async function generateNutritionPlan(params: NutritionPlanParams) {
         }
       ]
     }
-    
+
     Include entries for all 7 days of the week.
     For each day, include 3-4 meals (breakfast, lunch, dinner, and optionally snacks).
     Provide NO COMMENTS or explanations, only the JSON response.`;
@@ -382,7 +187,7 @@ export async function generateNutritionPlan(params: NutritionPlanParams) {
     ];
 
     // Use gpt-3.5-turbo for compatibility
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages,
       temperature: 0.5, // Lower temperature for more consistent output
@@ -390,13 +195,12 @@ export async function generateNutritionPlan(params: NutritionPlanParams) {
     });
 
     const nutritionPlanString = response.choices[0]?.message?.content || '';
-    console.log("Received nutrition plan response length:", nutritionPlanString.length);
-    
+
     // Validate and fix the JSON response
-    return validateAndFixNutritionPlanJson(nutritionPlanString);
+    return parseNutritionPlan(nutritionPlanString, { goalType: params.goalType, currentWeight: params.weight, height: params.height, age: params.age, sex: params.sex, dietaryRestrictions: params.allergies });
   } catch (error) {
-    console.error('Failed to generate nutrition plan:', error);
-    throw new Error(`Failed to generate nutrition plan: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('AI nutrition generation failed validation or service request');
+    throw new Error('Unable to generate a complete nutrition plan. Please try again.');
   }
 }
 
@@ -407,7 +211,7 @@ export async function generateMealPlan(userData: any) {
     Dietary Restrictions: ${userData.dietaryRestrictions.join(', ')}
     Favorite Foods: ${userData.favoriteFoods.join(', ')}
     Allergies: ${userData.allergies.join(', ')}
-    
+
     Please provide a detailed meal plan that includes:
     1. Daily meal breakdown
     2. Macro distribution
@@ -415,7 +219,7 @@ export async function generateMealPlan(userData: any) {
     4. Food alternatives
     5. Shopping list`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4-turbo-preview',
     messages: [{ role: "user", content: prompt }],
   });
@@ -429,12 +233,12 @@ export async function analyzeProgress(userData: any, progressData: any) {
     - Weight Change: ${progressData.weightChange}
     - Workout Completion: ${progressData.workoutCompletion}
     - Nutrition Adherence: ${progressData.nutritionAdherence}
-    
+
     User Data:
     - Goal: ${userData.goalType}
     - Target Weight: ${userData.targetWeight}
     - Time Remaining: ${progressData.timeRemaining}
-    
+
     Please provide:
     1. Progress analysis
     2. Areas of success
@@ -442,10 +246,10 @@ export async function analyzeProgress(userData: any, progressData: any) {
     4. Specific recommendations
     5. Motivation and encouragement`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4-turbo-preview',
     messages: [{ role: "user", content: prompt }],
   });
 
   return completion.choices[0].message.content;
-} 
+}

@@ -1,3 +1,5 @@
+import { metricProfileSchema } from '@/lib/validations/profile'
+import { validateMutationRequest, readJsonBody, requestErrorResponse } from '@/lib/api-security'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
@@ -12,7 +14,7 @@ export async function GET() {
   try {
     // Get authenticated session
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized - No valid session' },
@@ -64,7 +66,7 @@ export async function GET() {
     }
 
     // Return user profile data
-    return NextResponse.json(profileData, { 
+    return NextResponse.json(profileData, {
       status: 200,
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -72,8 +74,10 @@ export async function GET() {
         'Expires': '0',
       }
     })
-    
+
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('Error fetching user profile:', error)
     return NextResponse.json(
       { error: 'Internal server error while fetching profile' },
@@ -84,10 +88,12 @@ export async function GET() {
 
 // POST /api/user/profile - Update user's profile
 export async function POST(request: NextRequest) {
+  const rejected = validateMutationRequest(request)
+  if (rejected) return rejected
   try {
     // Get authenticated session
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized - No valid session' },
@@ -95,38 +101,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse request body
-    const body = await request.json()
-    
-    // Validate and sanitize input data
-    const allowedFields = [
-      'name',
-      'hasCompletedOnboarding',
-      'age',
-      'sex',
-      'height',
-      'weight', // Map currentWeight to weight
-      'targetWeight',
-      'startingWeight',
-      'goalType',
-      'experienceLevel',
-      'preferredWorkoutDays',
-      'weakPoints',
-      'favoriteFoods',
-      'allergies',
-      'targetDate',
-    ]
-    
-    const updateData: any = {}
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field]
-      }
+    const result = metricProfileSchema.safeParse(await readJsonBody(request))
+    if (!result.success) {
+      return NextResponse.json({ error: 'Invalid profile data', details: result.error.flatten() }, { status: 400 })
     }
-    
-    // Handle currentWeight mapping to weight
-    if (body.currentWeight !== undefined) {
-      updateData.weight = body.currentWeight
+    const { currentWeight, targetDate, ...fields } = result.data
+    const updateData = {
+      ...fields,
+      ...(currentWeight !== undefined && { weight: currentWeight }),
+      ...(targetDate !== undefined && { targetDate: targetDate ? new Date(targetDate) : null }),
     }
 
     // Ensure we have something to update
@@ -177,16 +160,18 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
+      {
         message: 'Profile updated successfully',
-        user: responseData 
+        user: responseData
       },
       { status: 200 }
     )
-    
+
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('Error updating user profile:', error)
-    
+
     // Handle Prisma errors specifically
     if (error instanceof Error && error.message.includes('Record to update not found')) {
       return NextResponse.json(
@@ -194,10 +179,10 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
-    
+
     return NextResponse.json(
       { error: 'Internal server error while updating profile' },
       { status: 500 }
     )
   }
-} 
+}

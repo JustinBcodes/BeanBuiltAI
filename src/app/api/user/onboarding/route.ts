@@ -1,3 +1,4 @@
+import { validateMutationRequest, readJsonBody, requestErrorResponse } from '@/lib/api-security'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -12,18 +13,15 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function POST(req: Request) {
-  let sessionUser = null; // For potential rollback
+  const rejected = validateMutationRequest(req)
+  if (rejected) return rejected
   try {
-    console.log('🔄 Onboarding API called')
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) { // Check for user.id from session
-      console.log('❌ No valid session found')
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.log('✅ Valid session found for user:', session.user.id)
-    sessionUser = session.user; // Store for potential rollback
 
-    const rawData = await req.json();
+    const rawData = await readJsonBody(req);
     const validationResult = onboardingSchema.safeParse(rawData);
 
     if (!validationResult.success) {
@@ -31,7 +29,7 @@ export async function POST(req: Request) {
     }
 
     const data = validationResult.data;
-    
+
     const weightInKg = data.currentWeight * 0.453592;
     const targetWeightInKg = data.targetWeight * 0.453592;
     const heightInCm = Math.round(data.height * 2.54); // Convert inches to CM and round
@@ -54,16 +52,6 @@ export async function POST(req: Request) {
       ...(data.allergies && { allergies: data.allergies }),
       ...(finalTargetDate && { targetDate: finalTargetDate }),
     };
-
-    console.log('🔄 Updating user profile in database...')
-    const user = await prisma.user.update({
-      where: { id: session.user.id }, // Use user.id from session
-      data: userUpdateData
-    });
-    console.log('✅ User profile updated with hasCompletedOnboarding:', user.hasCompletedOnboarding)
-
-    // Plan Generation using static generators
-    console.log('🔄 Generating workout and nutrition plans...')
     const [workoutPlan, nutritionPlan] = await Promise.all([
       createStaticWorkoutPlan({
         goalType: data.goalType,
@@ -79,23 +67,15 @@ export async function POST(req: Request) {
         sex: data.sex,
       })
     ]);
-    console.log('✅ Plans generated successfully')
 
     if (!workoutPlan || !nutritionPlan) {
-      // Rollback onboarding status if plan generation fails critically
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: { hasCompletedOnboarding: false }
-      });
       return NextResponse.json({ error: 'Failed to generate workout or nutrition plan' }, { status: 500 });
     }
-
-    // Save plans
-    console.log('🔄 Saving plans to database...')
-    await Promise.all([
+    const [user] = await prisma.$transaction([
+      prisma.user.update({ where: { id: session.user.id }, data: userUpdateData }),
       prisma.workoutPlan.create({
         data: {
-          userId: user.id,
+          userId: session.user.id,
           planName: (workoutPlan as any).planName || "Generated Workout Plan",
           plan: workoutPlan as any, // Changed from planData to plan
           startDate: new Date(),
@@ -104,7 +84,7 @@ export async function POST(req: Request) {
       }),
       prisma.nutritionPlan.create({
         data: {
-          userId: user.id,
+          userId: session.user.id,
           planName: (nutritionPlan as any).planName || "Generated Nutrition Plan",
           plan: nutritionPlan as any, // Changed from planData to plan
           startDate: new Date(),
@@ -112,12 +92,9 @@ export async function POST(req: Request) {
         }
       })
     ]);
-    console.log('✅ Plans saved to database successfully')
-
-    console.log('✅ Onboarding completed successfully')
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Onboarding successful and plans generated',
-      user, // Send back updated user 
+      user, // Send back updated user
       workoutPlan, // Added workoutPlan to response
       nutritionPlan // Added nutritionPlan to response
     }, {
@@ -129,22 +106,11 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('[API Onboarding POST] Error:', error);
-    // Attempt to rollback onboarding status if an unexpected error occurs before plans are generated
-    // but after user might have been marked as completed (though Zod validation is first)
-    if (sessionUser?.id && error instanceof Error && !(error.message.includes("Failed to generate"))) {
-        try {
-            const userCheck = await prisma.user.findUnique({ where: {id: sessionUser.id }, select: { hasCompletedOnboarding: true }});
-            if(userCheck?.hasCompletedOnboarding) {
-                 await prisma.user.update({ where: { id: sessionUser.id }, data: { hasCompletedOnboarding: false }});
-                 console.log(`[API Onboarding POST] Rolled back hasCompletedOnboarding for user ${sessionUser.id}`);
-            }
-        } catch (rollbackError) {
-            console.error("[API Onboarding POST] Rollback error:", rollbackError);
-        }
-    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An internal server error occurred' },
+      { error: 'An internal server error occurred' },
       { status: 500 }
     );
   }
@@ -157,6 +123,8 @@ const PLAN_AFFECTING_FIELDS: (keyof z.infer<typeof profileUpdateSchema>)[] = [
 ];
 
 export async function PUT(req: Request) {
+  const rejected = validateMutationRequest(req)
+  if (rejected) return rejected
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -171,13 +139,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const rawData = await req.json();
+    const rawData = await readJsonBody(req);
     const validationResult = profileUpdateSchema.safeParse(rawData);
 
     if (!validationResult.success) {
       return NextResponse.json({ error: 'Invalid input', details: validationResult.error.flatten() }, { status: 400 });
     }
-    
+
     const dataToUpdate = validationResult.data;
     const updatePayload: Record<string, any> = {};
     let shouldRegeneratePlans = false;
@@ -211,8 +179,8 @@ export async function PUT(req: Request) {
           // The PLAN_AFFECTING_FIELDS check handles this implicitly if targetDate is not in it.
         } else if (key === 'preferredWorkoutDays') {
           // Use preferredWorkoutDays directly for Prisma, as it matches the schema
-          updatePayload.preferredWorkoutDays = formValue; 
-          
+          updatePayload.preferredWorkoutDays = formValue;
+
           // Check if preferredWorkoutDays actually changed for plan regeneration
           const currentDays = currentUserState.preferredWorkoutDays || [];
           const newDays = formValue || [];
@@ -281,13 +249,10 @@ export async function PUT(req: Request) {
       const userForPlanGen = await prisma.user.findUnique({ where: { id: userId } });
       if (!userForPlanGen || !userForPlanGen.age || !userForPlanGen.sex || !userForPlanGen.height || !userForPlanGen.weight || !userForPlanGen.goalType || !userForPlanGen.experienceLevel) {
         // This case should ideally not happen if onboarding is complete and fields are set.
-        console.error("User data incomplete for plan regeneration after update. User data:", JSON.stringify(userForPlanGen));
+        console.error("User data incomplete for plan regeneration after update");
         return NextResponse.json({ message: "Profile updated, but plans not regenerated due to incomplete data.", user: updatedUserPrisma });
       }
-      
-      // Delete old plans
-      await prisma.workoutPlan.deleteMany({ where: { userId } });
-      await prisma.nutritionPlan.deleteMany({ where: { userId } });
+
 
       const [newWorkoutPlan, newNutritionPlan] = await Promise.all([
         createStaticWorkoutPlan({
@@ -305,35 +270,36 @@ export async function PUT(req: Request) {
         })
       ]);
 
-      console.log("[API Profile PUT] Generated Workout Plan:", JSON.stringify(newWorkoutPlan, null, 2));
-      console.log("[API Profile PUT] Generated Nutrition Plan:", JSON.stringify(newNutritionPlan, null, 2));
-
       if (!newWorkoutPlan || !newNutritionPlan) {
         // Log error, but user profile is already updated. Don't roll back user update.
         console.error("Failed to regenerate plans after profile update for user (OpenAI returned null/undefined):", userId);
-        return NextResponse.json({ 
-          message: 'Profile updated, but failed to regenerate plans.', 
-          user: updatedUserPrisma 
+        return NextResponse.json({
+          message: 'Profile updated, but failed to regenerate plans.',
+          user: updatedUserPrisma
         }, { status: 200 }); // Success for profile update, but partial for plans
       }
 
-      await Promise.all([
+      await prisma.$transaction([
+        prisma.workoutPlan.deleteMany({ where: { userId } }),
+        prisma.nutritionPlan.deleteMany({ where: { userId } }),
         prisma.workoutPlan.create({ data: { userId, planName: (newWorkoutPlan as any).planName || "Updated Workout Plan", plan: newWorkoutPlan as any, startDate: new Date(), endDate: userForPlanGen.targetDate } }),
         prisma.nutritionPlan.create({ data: { userId, planName: (newNutritionPlan as any).planName || "Updated Nutrition Plan", plan: newNutritionPlan as any, startDate: new Date(), endDate: userForPlanGen.targetDate } })
       ]);
 
-      return NextResponse.json({ 
-        message: "Profile updated and plans regenerated successfully", 
-        user: updatedUserPrisma, 
-        workoutPlan: newWorkoutPlan, 
-        nutritionPlan: newNutritionPlan 
+      return NextResponse.json({
+        message: "Profile updated and plans regenerated successfully",
+        user: updatedUserPrisma,
+        workoutPlan: newWorkoutPlan,
+        nutritionPlan: newNutritionPlan
       });
     }
 
     return NextResponse.json({ message: "Profile updated successfully", user: updatedUserPrisma });
 
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('[API Profile PUT] Error:', error);
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
   }
-} 
+}

@@ -12,12 +12,13 @@ import { useStore } from '@/store'
 import { toast } from '@/components/ui/use-toast'
 import { Loader2, RefreshCw, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function SettingsPage() {
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const { profile, updateProfileStats, resetProgress } = useStore()
   const router = useRouter()
-  
+
   const [name, setName] = useState('')
   const [goalType, setGoalType] = useState<'weight_loss' | 'muscle_gain' | 'general_fitness' | 'strength_gain'>('weight_loss')
   const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate')
@@ -25,8 +26,6 @@ export default function SettingsPage() {
   const [isResetting, setIsResetting] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showReonboardDialog, setShowReonboardDialog] = useState(false)
-  const [emailNotifications, setEmailNotifications] = useState(false)
-  const [workoutReminders, setWorkoutReminders] = useState(false)
 
   // Load data from profile
   useEffect(() => {
@@ -42,16 +41,20 @@ export default function SettingsPage() {
   }
 
   const handleSaveChanges = async () => {
+    if (!name.trim() || name.trim().length > 100) {
+      toast({ title: 'Check your name', description: 'Use a name between 1 and 100 characters.', variant: 'destructive' })
+      return
+    }
     setIsSaving(true)
-    
+
     try {
       // Update profile through store
       const result = await updateProfileStats({
-        name,
+        name: name.trim(),
         goalType,
         experienceLevel,
       })
-      
+
       if (result.success) {
         toast({
           title: "Settings Saved",
@@ -75,7 +78,8 @@ export default function SettingsPage() {
     setIsResetting(true)
     setShowResetDialog(false)
     try {
-      await resetProgress()
+      if (!await resetProgress()) throw new Error('Could not reset your progress')
+      await update()
       toast({
         title: "Progress Reset Successful",
         description: "All your fitness data has been reset. You will now go through onboarding again.",
@@ -97,7 +101,8 @@ export default function SettingsPage() {
     setIsResetting(true)
     setShowReonboardDialog(false)
     try {
-      await resetProgress()
+      if (!await resetProgress()) throw new Error('Could not reset your progress')
+      await update()
       toast({
         title: "Ready for Re-Onboarding",
         description: "Your plans and progress have been cleared. Let's set up your new fitness journey!",
@@ -115,27 +120,11 @@ export default function SettingsPage() {
     }
   }
 
-  const toggleEmailNotifications = () => {
-    setEmailNotifications(prev => !prev)
-    toast({
-      title: `Email Notifications ${emailNotifications ? 'Disabled' : 'Enabled'}`,
-      description: `You will ${emailNotifications ? 'no longer' : 'now'} receive email notifications.`,
-    })
-  }
-
-  const toggleWorkoutReminders = () => {
-    setWorkoutReminders(prev => !prev)
-    toast({
-      title: `Workout Reminders ${workoutReminders ? 'Disabled' : 'Enabled'}`,
-      description: `You will ${workoutReminders ? 'no longer' : 'now'} receive workout reminders.`,
-    })
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-gray-500">Manage your account settings and preferences</p>
+        <p className="text-muted-foreground">Manage your account settings and preferences</p>
       </div>
 
       <div className="grid gap-6">
@@ -146,10 +135,11 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input 
-                id="name" 
+              <Input
+                id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
@@ -167,11 +157,11 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="goalType">Primary Fitness Goal</Label>
-              <Select 
+              <Select
                 value={goalType}
                 onValueChange={(value) => setGoalType(value as any)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="goalType">
                   <SelectValue placeholder="Select goal type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -184,11 +174,11 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="experienceLevel">Experience Level</Label>
-              <Select 
+              <Select
                 value={experienceLevel}
                 onValueChange={(value) => setExperienceLevel(value as any)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="experienceLevel">
                   <SelectValue placeholder="Select experience level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -198,7 +188,7 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="pt-4 border-t">
               <h3 className="text-md font-semibold mb-2 text-destructive">Danger Zone</h3>
               <div className="space-y-3">
@@ -237,7 +227,7 @@ export default function SettingsPage() {
                   </div>
                   <AlertDialog open={showReonboardDialog} onOpenChange={setShowReonboardDialog}>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="mt-2 sm:mt-0 sm:ml-4 shrink-0" disabled={isResetting}> 
+                      <Button variant="outline" className="mt-2 sm:mt-0 sm:ml-4 shrink-0" disabled={isResetting}>
                         {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />} Re-Onboard
                       </Button>
                     </AlertDialogTrigger>
@@ -263,39 +253,16 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Email Notifications</Label>
-                <p className="text-sm text-gray-500">Receive updates about your progress</p>
-              </div>
-              <Button 
-                variant={emailNotifications ? "default" : "outline"}
-                onClick={toggleEmailNotifications}
-              >
-                {emailNotifications ? "Disable" : "Enable"}
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Workout Reminders</Label>
-                <p className="text-sm text-gray-500">Get reminded about your scheduled workouts</p>
-              </div>
-              <Button 
-                variant={workoutReminders ? "default" : "outline"}
-                onClick={toggleWorkoutReminders}
-              >
-                {workoutReminders ? "Disable" : "Enable"}
-              </Button>
-            </div>
-          </CardContent>
+          <CardHeader><CardTitle>Membership</CardTitle><CardDescription>Manage your plan and explore BeanBuilt Pro.</CardDescription></CardHeader>
+          <CardContent><Button asChild variant="outline"><Link href="/billing">Manage membership</Link></Button></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Notifications</CardTitle></CardHeader>
+          <CardContent><p className="text-sm text-muted-foreground">Email updates and workout reminders are not available yet. Notification preferences will appear here when delivery is supported.</p></CardContent>
         </Card>
 
         <div className="flex justify-end">
-          <Button 
+          <Button
             onClick={handleSaveChanges}
             disabled={isSaving}
           >
@@ -310,4 +277,4 @@ export default function SettingsPage() {
       </div>
     </div>
   )
-} 
+}

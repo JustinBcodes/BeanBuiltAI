@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { BrandLogo } from '@/components/BrandLogo'
 import { useSession, signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
@@ -39,7 +40,7 @@ function AuthLoading({ message }: { message: string }) {
   return (
     <div className={styles.loadingPage}>
       <div className={styles.loadingState}>
-        <span className={styles.brandMark}>B</span>
+        <BrandLogo />
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <p>{message}</p>
       </div>
@@ -47,12 +48,13 @@ function AuthLoading({ message }: { message: string }) {
   )
 }
 
-export default function SignInPage() {
+function SignInContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-  const from = searchParams.get('from') || '/dashboard'
+  const requestedFrom = searchParams.get('from') || '/dashboard'
+  const from = /^\/(?![\/\\])/.test(requestedFrom) && !/[\\\x00-\x1f]/.test(requestedFrom) ? requestedFrom : '/dashboard'
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [sessionChecked, setSessionChecked] = useState(false)
 
@@ -98,8 +100,7 @@ export default function SignInPage() {
       </Link>
 
       <Link href="/" className={styles.brand} aria-label="BeanBuilt AI home">
-        <span className={styles.brandMark}>B</span>
-        <span>beanbuilt ai</span>
+        <BrandLogo />
       </Link>
 
       <div className={styles.authLayout}>
@@ -110,8 +111,8 @@ export default function SignInPage() {
             One intelligent place for workouts, nutrition, recovery, and the progress that keeps you moving.
           </p>
           <div className={styles.proofRow}>
-            <div><strong>50K+</strong><span>workouts logged</span></div>
-            <div><strong>4.9/5</strong><span>average rating</span></div>
+            <div><strong>Your goals</strong><span>one clear plan</span></div>
+            <div><strong>Your pace</strong><span>one day at a time</span></div>
           </div>
         </section>
 
@@ -148,3 +149,5 @@ export default function SignInPage() {
     </main>
   )
 }
+
+export default function SignInPage() { return <Suspense fallback={<AuthLoading message="Loading sign-in..." />}><SignInContent /></Suspense> }

@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { BrandLogo } from '@/components/BrandLogo'
 import { UserNav } from './UserNav'
 import { Button } from '@/components/ui/button'
-import { Menu, Bell } from 'lucide-react'
+import { Menu, Sparkles } from 'lucide-react'
 
 interface HeaderProps {
   onMobileMenuToggle: () => void;
@@ -28,18 +29,13 @@ export function Header({ onMobileMenuToggle, showMenuButton = true }: HeaderProp
           )}
 
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-xs font-black text-primary-foreground">B</span>
-            <span className="hidden text-sm font-extrabold tracking-[-0.03em] text-foreground sm:inline-block">
-              beanbuilt ai
-            </span>
+            <span className="sm:hidden"><BrandLogo compact /></span>
+            <span className="hidden sm:block"><BrandLogo /></span>
           </Link>
         </div>
 
         <div className="flex items-center space-x-3 sm:space-x-4">
-          <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:bg-accent hover:text-primary">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <Button asChild variant="ghost" className="text-primary"><Link href="/pro"><Sparkles className="mr-2 h-4 w-4" />Pro tools</Link></Button>
           <UserNav />
         </div>
       </div>

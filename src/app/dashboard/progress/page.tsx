@@ -19,18 +19,18 @@ const calculateWorkoutCompletion = (workoutProgress: any) => {
   if (!workoutProgress || !Array.isArray(workoutProgress.weeklySchedule) || workoutProgress.weeklySchedule.length === 0) {
     return 0;
   }
-  
+
   // Get current week index
   const currentWeekIndex = workoutProgress.currentWeekIndex || 0;
   const currentWeek = workoutProgress.weeklySchedule[currentWeekIndex];
-  
+
   if (!Array.isArray(currentWeek)) {
     return 0;
   }
-  
+
   const workoutDays = currentWeek.filter((day: any) => !day.isRestDay && day.workoutDetails);
   const completedWorkouts = workoutDays.filter((day: any) => day.workoutDetails?.completed).length;
-  
+
   return workoutDays.length > 0 ? Math.round((completedWorkouts / workoutDays.length) * 100) : 0;
 };
 
@@ -39,15 +39,15 @@ const calculateMealAdherence = (nutritionProgress: any) => {
   if (!nutritionProgress || !Array.isArray(nutritionProgress.weeklyMealProgress) || nutritionProgress.weeklyMealProgress.length === 0) {
     return [];
   }
-  
+
   // Get current week index
   const currentWeekIndex = nutritionProgress.currentWeekIndex || 0;
   const currentWeek = nutritionProgress.weeklyMealProgress[currentWeekIndex];
-  
+
   if (!Array.isArray(currentWeek)) {
     return [];
   }
-  
+
   return currentWeek.map((dayData: any) => {
     const meals = dayData.meals || [];
     const totalMeals = meals.length;
@@ -67,17 +67,17 @@ const lbsToKg = (lbs: number): number => {
 export default function ProgressPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { 
-    profile, 
-    workoutPlan, 
+  const {
+    profile,
+    workoutPlan,
     nutritionPlan,
     workoutProgress,
     nutritionProgress,
-    weightProgress, 
+    weightProgress,
     resetProgress: resetStoreProgress,
-    updateCurrentWeight
+    updateWeightProgress
   } = useStore()
-  
+
   const [isResetting, setIsResetting] = useState(false)
   const [newWeightInputLbs, setNewWeightInputLbs] = useState('')
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false)
@@ -85,7 +85,7 @@ export default function ProgressPage() {
   const handleResetProgress = async () => {
     try {
       setIsResetting(true)
-      await resetStoreProgress()
+      if (!await resetStoreProgress()) throw new Error('Could not reset your progress')
       toast({
         title: "Progress Reset",
         description: "Your progress, plans, and profile onboarding status have been reset.",
@@ -118,9 +118,9 @@ export default function ProgressPage() {
     try {
       const weightInLbs = Number(newWeightInputLbs);
       const weightInKg = lbsToKg(weightInLbs);
-      
-      updateCurrentWeight(weightInKg); 
-      
+
+      await updateWeightProgress(weightInKg);
+
       setNewWeightInputLbs('');
       toast({
         title: "Weight Logged",
@@ -157,7 +157,7 @@ export default function ProgressPage() {
     if (!nutritionProgress) return [];
     return calculateMealAdherence(nutritionProgress);
   }, [nutritionProgress]);
-  
+
   if (isResetting) {
     return <Loading message="Resetting your progress..." />
   }
@@ -168,11 +168,11 @@ export default function ProgressPage() {
     }
     return <Loading message="Redirecting to onboarding..." />;
   }
-  
+
   if (!profile) {
     return <Loading message="Loading profile..." />;
   }
-  
+
   const noWeightData = !weightChartData || weightChartData.length === 0;
   const noWorkoutData = !workoutProgress || !Array.isArray(workoutProgress.weeklySchedule) || workoutProgress.weeklySchedule.length === 0;
   const noNutritionData = !nutritionProgress || !Array.isArray(nutritionProgress.weeklyMealProgress) || nutritionProgress.weeklyMealProgress.length === 0;
@@ -240,7 +240,7 @@ export default function ProgressPage() {
               </LineChart>
             </ResponsiveContainer>
           )}
-          
+
           <form onSubmit={handleLogNewWeight} className="mt-6 border-t pt-6">
             <h3 className="text-lg font-medium mb-3 text-foreground">Log Your Current Weight</h3>
             <div className="flex flex-col sm:flex-row items-end gap-3">
@@ -337,7 +337,7 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Placeholder for additional stats or insights */}
       <Card className="shadow-lg rounded-2xl">
         <CardHeader>
@@ -381,4 +381,4 @@ export default function ProgressPage() {
 
     </div>
   )
-} 
+}

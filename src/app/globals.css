@@ -6,7 +6,12 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 6rem;
 }
- 
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
 @layer base {
   :root {
     --background: 132 22% 3%;
@@ -14,60 +19,60 @@ html {
 
     --card: 130 14% 7%;
     --card-foreground: 100 14% 94%;
- 
+
     --popover: 130 14% 7%;
     --popover-foreground: 100 14% 94%;
- 
+
     --primary: 83 100% 62%;
     --primary-foreground: 110 43% 7%;
- 
+
     --secondary: 128 13% 12%;
     --secondary-foreground: 100 14% 94%;
- 
+
     --muted: 128 12% 12%;
     --muted-foreground: 110 5% 59%;
- 
+
     --accent: 91 32% 15%;
     --accent-foreground: 83 100% 72%;
- 
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 125 10% 17%;
     --input: 125 10% 20%;
     --ring: 83 100% 62%;
- 
+
     --radius: 0.75rem;
- 
+
     --chart-1: 83 100% 62%;
     --chart-2: 147 60% 54%;
     --chart-3: 48 90% 60%;
     --chart-4: 104 48% 54%;
     --chart-5: 74 68% 70%;
   }
- 
+
   .dark {
     --background: 132 22% 3%;
     --foreground: 100 14% 94%;
 
     --card: 130 14% 7%;
     --card-foreground: 100 14% 94%;
- 
+
     --popover: 130 14% 7%;
     --popover-foreground: 100 14% 94%;
- 
+
     --primary: 83 100% 62%;
     --primary-foreground: 110 43% 7%;
- 
+
     --secondary: 128 13% 12%;
     --secondary-foreground: 100 14% 94%;
- 
+
     --muted: 128 12% 12%;
     --muted-foreground: 110 5% 59%;
- 
+
     --accent: 91 32% 15%;
     --accent-foreground: 83 100% 72%;
- 
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
@@ -76,7 +81,7 @@ html {
     --ring: 83 100% 62%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;

@@ -17,19 +17,21 @@ import {
   Zap,
 } from 'lucide-react'
 import styles from './landing.module.css'
+import { BrandLogo } from '@/components/BrandLogo'
+import { LandingPreview, LandingFAQ } from '@/components/LandingPreview'
 
 const features = [
   {
     icon: Zap,
     title: 'Smart Workout Plans',
     description:
-      'Get personalized workout routines tailored to your goals and fitness level, powered by AI.',
+      'Start with workout routines for your goals and experience. See your next session before you walk in.',
   },
   {
     icon: Utensils,
-    title: 'AI Nutrition Coach',
+    title: 'Nutrition, Organized',
     description:
-      'AI-generated meal plans and nutrition tracking to support your fitness journey effectively.',
+      'Keep your meal plan, ingredients, daily targets, and completed meals together in one place.',
   },
   {
     icon: BarChart3,
@@ -39,39 +41,13 @@ const features = [
   },
 ]
 
-const testimonials = [
-  {
-    quote:
-      'BeanBuilt rebuilt my entire routine in a week. Down 18 lbs and finally consistent.',
-    initials: 'JE',
-    name: 'Jordan Ellis',
-    role: 'Member since 2024',
-    tone: 'lime',
-  },
-  {
-    quote:
-      'The meal plans actually fit my schedule. No more guessing what to eat before lifts.',
-    initials: 'PN',
-    name: 'Priya Nair',
-    role: 'Marathon runner',
-    tone: 'mint',
-  },
-  {
-    quote:
-      'Feels like having a coach and dietitian in my pocket. Worth every cent.',
-    initials: 'MW',
-    name: 'Marcus Webb',
-    role: 'Member since 2023',
-    tone: 'gold',
-  },
+const steps = [
+  { number: '01', title: 'Tell us about you', copy: 'Your goals, experience, and preferred training days give your routine a starting point.' },
+  { number: '02', title: 'Find your rhythm', copy: 'Explore your starter workout and meal plans. Find your next session and make it happen.' },
+  { number: '03', title: 'Build the habit', copy: 'Check off workouts and meals, log your weight, and keep your goals in view.' },
 ]
 
-const stats = [
-  ['150+', 'Active users'],
-  ['50K+', 'Workouts logged'],
-  ['4.9/5', 'Average rating'],
-  ['92%', 'Hit their goals'],
-]
+const stats = [['Train', 'With intention'], ['Eat', 'With a plan'], ['Track', 'The little wins'], ['Repeat', 'At your pace']]
 
 const reveal = {
   hidden: { opacity: 0, y: 34 },
@@ -97,17 +73,16 @@ export default function LandingPage() {
 
       <header className={styles.header}>
         <Link className={styles.brand} href="/" aria-label="BeanBuilt AI home">
-          <span className={styles.brandMark}>B</span>
-          <span>beanbuilt ai</span>
+          <BrandLogo />
         </Link>
 
         <nav className={styles.nav} aria-label="Main navigation">
           <a href="#features">Features</a>
-          <a href="#reviews">Reviews</a>
+          <a href="#inside">Inside the app</a>
           <a href="#pricing">Pricing</a>
         </nav>
 
-        <Link className={styles.navCta} href="/api/auth/signin">
+        <Link className={styles.navCta} href="/auth/signin">
           get started
         </Link>
       </header>
@@ -153,7 +128,7 @@ export default function LandingPage() {
             transition={{ duration: 0.75, ease: 'easeOut', delay: 0.12 }}
           >
             <span>beanbuilt ai</span>
-            <strong>today</strong>
+            <strong>built around you.</strong>
           </motion.h1>
           <motion.p
             className={styles.heroCopy}
@@ -172,7 +147,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.4 }}
           >
-            <Link className={styles.primaryCta} href="/api/auth/signin">
+            <Link className={styles.primaryCta} href="/auth/signin">
               start my fitness journey <ArrowRight aria-hidden="true" />
             </Link>
           </motion.div>
@@ -185,8 +160,8 @@ export default function LandingPage() {
           transition={{ duration: 0.7, delay: 0.5 }}
         >
           <span className={styles.statLine} />
-          <strong>150+</strong>
-          <small>active users</small>
+          <strong>Your goals.</strong>
+          <small>one clear plan</small>
         </motion.div>
         <motion.div
           className={`${styles.floatingStat} ${styles.floatingStatLeft}`}
@@ -194,9 +169,9 @@ export default function LandingPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, delay: 0.6 }}
         >
-          <strong>50K+</strong>
+          <strong>Your pace.</strong>
           <span className={styles.statLine} />
-          <small>workouts logged</small>
+          <small>one day at a time</small>
         </motion.div>
         <motion.div
           className={`${styles.floatingStat} ${styles.floatingStatBottom}`}
@@ -205,8 +180,8 @@ export default function LandingPage() {
           transition={{ duration: 0.7, delay: 0.7 }}
         >
           <span className={styles.statLine} />
-          <strong>4.9/5</strong>
-          <small>average rating</small>
+          <strong>Your progress.</strong>
+          <small>every little win</small>
         </motion.div>
 
         <div className={styles.scrollCue} aria-hidden="true">
@@ -244,7 +219,7 @@ export default function LandingPage() {
             <h2 id="features-heading">
               Everything you need,
               <br />
-              engineered by AI
+              built around your routine
             </h2>
           </motion.div>
 
@@ -276,57 +251,11 @@ export default function LandingPage() {
           </motion.div>
         </section>
 
-        <section id="reviews" className={`${styles.section} ${styles.reviewSection}`} aria-labelledby="reviews-heading">
-          <motion.div
-            className={styles.sectionHeading}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.55 }}
-            variants={reveal}
-            transition={{ duration: 0.65 }}
-          >
-            <span>testimonials</span>
-            <h2 id="reviews-heading">Loved by people chasing results</h2>
-            <div className={styles.reviewSummary}>
-              <span aria-label="5 out of 5 stars">★★★★★</span>
-              <p>4.9 out of 5 — 12,400+ reviews</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className={styles.cardGrid}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ staggerChildren: 0.12 }}
-          >
-            {testimonials.map((testimonial) => (
-              <motion.article
-                className={styles.reviewCard}
-                key={testimonial.name}
-                variants={reveal}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              >
-                <div className={styles.stars} aria-label="5 out of 5 stars">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} fill="currentColor" aria-hidden="true" />
-                  ))}
-                </div>
-                <blockquote>“{testimonial.quote}”</blockquote>
-                <div className={styles.reviewer}>
-                  <span className={`${styles.avatar} ${styles[testimonial.tone]}`}>
-                    {testimonial.initials}
-                  </span>
-                  <p>
-                    <strong>{testimonial.name}</strong>
-                    <small>{testimonial.role}</small>
-                  </p>
-                </div>
-              </motion.article>
-            ))}
-          </motion.div>
+        <LandingPreview />
+        <section className={styles.section} aria-labelledby="steps-heading">
+          <motion.div className={styles.sectionHeading} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={reveal}><span>from someday to day one</span><h2 id="steps-heading">Your starting line is right here.</h2></motion.div>
+          <div className={styles.cardGrid}>{steps.map(step => <motion.article key={step.number} className={styles.featureCard} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={reveal}><span className={styles.stepNumber}>{step.number}</span><h3>{step.title}</h3><p>{step.copy}</p></motion.article>)}</div>
         </section>
-
         <section id="pricing" className={`${styles.section} ${styles.pricingSection}`} aria-labelledby="pricing-heading">
           <motion.div
             className={styles.pricingPanel}
@@ -339,10 +268,10 @@ export default function LandingPage() {
               <span className={styles.eyebrow}>simple pricing</span>
               <h2 id="pricing-heading">Build a stronger you.</h2>
               <p>
-                Your adaptive training plan, nutrition guidance, and every progress insight in one membership.
+                Start free with your core plans and tracking. Add more planning power with BeanBuilt Pro.
               </p>
               <ul>
-                {['Unlimited AI plans', 'Adaptive weekly coaching', 'Progress analytics'].map((item) => (
+                {['AI refreshes (3 requests / 24h)', 'Meal-plan grocery lists', 'Workout calendar export', 'Downloadable plan backups'].map((item) => (
                   <li key={item}>
                     <Check aria-hidden="true" /> {item}
                   </li>
@@ -351,25 +280,25 @@ export default function LandingPage() {
             </div>
             <div className={styles.priceBlock}>
               <p><strong>$12</strong><span>/ month</span></p>
-              <small>Cancel anytime. Start building today.</small>
-              <Link className={styles.primaryCta} href="/api/auth/signin">
-                get started <ArrowRight aria-hidden="true" />
+              <small>Pro checkout coming soon. Monthly membership, cancel through Stripe billing.</small>
+              <Link className={styles.primaryCta} href="/auth/signin?from=/billing">
+                explore Pro <ArrowRight aria-hidden="true" />
               </Link>
             </div>
           </motion.div>
         </section>
+        <LandingFAQ />
       </section>
 
       <footer className={styles.footer}>
         <Link className={styles.brand} href="/">
-          <span className={styles.brandMark}>B</span>
-          <span>beanbuilt ai</span>
+          <BrandLogo />
         </Link>
         <p>AI fitness, built around you.</p>
         <div>
           <a href="#features">Features</a>
-          <a href="#reviews">Reviews</a>
-          <Link href="/api/auth/signin">sign in</Link>
+          <a href="#inside">Inside the app</a>
+          <Link href="/auth/signin">sign in</Link>
         </div>
       </footer>
     </main>

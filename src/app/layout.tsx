@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
 
 import './globals.css'
+import { MotionProvider } from '@/components/MotionProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,6 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'BeanBuilt AI - Your Personal Fitness & Nutrition Coach',
   description: 'AI-powered fitness and nutrition coaching platform',
+  icons: { icon: '/brand/beanbuilt-ai.png', apple: '/brand/beanbuilt-ai.png' },
 }
 
 export const viewport: Viewport = {
@@ -39,12 +41,14 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NextAuthSessionProvider>
+            <MotionProvider>
             <StoreProvider>
               <AppLayout>
                 {children}
               </AppLayout>
               <Toaster />
             </StoreProvider>
+            </MotionProvider>
           </NextAuthSessionProvider>
         </ThemeProvider>
       </body>

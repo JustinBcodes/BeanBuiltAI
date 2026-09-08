@@ -1,7 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
-import { PrismaAdapter } from '@auth/prisma-adapter';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from './prisma';
 import './env-validation'; // Validate environment variables on load
 
@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
   // Enhanced cookie configuration for cross-device compatibility
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
+      name: process.env.NODE_ENV === 'production'
         ? `__Secure-next-auth.session-token`
         : `next-auth.session-token`,
       options: {
@@ -61,7 +61,6 @@ export const authOptions: NextAuthOptions = {
         sameSite: "lax", // Critical for mobile and cross-site compatibility
         path: "/",
         secure: process.env.NODE_ENV === 'production', // Only secure in production
-        domain: process.env.NODE_ENV === 'production' ? '.beanbuiltai.com' : undefined, // Allow subdomains in production
       },
     },
     callbackUrl: {
@@ -73,7 +72,6 @@ export const authOptions: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? '.beanbuiltai.com' : undefined,
       },
     },
     csrfToken: {
@@ -91,7 +89,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // Basic check, can be expanded (e.g., allow only specific domains)
-      if (!user.email) {
+      if (!user.email || (account?.provider === 'google' && !(profile as { email_verified?: boolean } | undefined)?.email_verified)) {
         return false;
       }
       // Potentially link account or perform other actions here if needed on first sign-in
@@ -136,31 +134,12 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Enhanced redirect handling for production
-      const prodUrl = process.env.NEXTAUTH_URL || baseUrl;
-      
-      // If url is relative, make it absolute with the correct base
-      if (url.startsWith('/')) {
-        return `${prodUrl}${url}`;
-      }
-      
-      // If url is absolute and matches our domain (with or without www), allow it
+      const origin = new URL(process.env.NEXTAUTH_URL || baseUrl).origin;
       try {
-        const urlObj = new URL(url);
-        const baseUrlObj = new URL(prodUrl);
-        
-        // Allow redirects to same domain (with or without www)
-        if (urlObj.hostname === baseUrlObj.hostname || 
-            urlObj.hostname === `www.${baseUrlObj.hostname}` ||
-            baseUrlObj.hostname === `www.${urlObj.hostname}`) {
-          return url;
-        }
-      } catch (error) {
-        console.error('Error parsing redirect URLs:', error);
-      }
-      
-      // Default to base URL for safety
-      return prodUrl;
+        const destination = new URL(url, origin);
+        if (destination.origin === origin && !destination.username && !destination.password) return destination.href;
+      } catch { /* Invalid callback URLs fall back to the application. */ }
+      return origin;
     },
   },
   pages: {
@@ -172,4 +151,4 @@ export const authOptions: NextAuthOptions = {
   // Enhanced debug logging for production troubleshooting
   debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET as string,
-}; 
+};

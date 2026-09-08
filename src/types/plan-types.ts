@@ -3,9 +3,9 @@ export interface Profile {
   name: string;
   email: string;
   age: number;
-  height: number; // in inches
-  currentWeight: number; // in lbs
-  targetWeight: number; // in lbs
+  height: number; // in centimeters
+  currentWeight: number; // in kilograms
+  targetWeight: number; // in kilograms
   goalType: 'weight_loss' | 'muscle_gain' | 'general_fitness' | 'strength_gain';
   experienceLevel: 'beginner' | 'intermediate' | 'advanced';
   preferredWorkoutDays: string[];
@@ -130,4 +130,4 @@ export interface NutritionPlan {
   generalTips: string[];
   multiWeekMealPlans: WeeklyMealPlan[];
   currentWeekIndex: number;
-} 
+}

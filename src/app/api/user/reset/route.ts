@@ -1,9 +1,12 @@
+import { validateMutationRequest, readJsonBody, requestErrorResponse } from '@/lib/api-security'
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
+  const rejected = validateMutationRequest(req)
+  if (rejected) return rejected
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -49,10 +52,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'User progress and onboarding status reset successfully.' });
 
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('[API User Reset POST] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An internal server error occurred during reset.' },
+      { error: 'An internal server error occurred during reset.' },
       { status: 500 }
     );
   }
-} 
+}

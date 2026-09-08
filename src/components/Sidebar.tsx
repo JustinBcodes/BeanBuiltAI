@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandLogo } from '@/components/BrandLogo'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -15,7 +16,9 @@ import {
   Activity,
   LineChart,
   X,
-  Lightbulb
+  Lightbulb,
+  Sparkles,
+  CreditCard
 } from 'lucide-react'
 
 const navItems = [
@@ -49,6 +52,8 @@ const navItems = [
     href: '/tips',
     icon: Lightbulb
   },
+  { title: 'Pro tools', href: '/pro', icon: Sparkles },
+  { title: 'Membership', href: '/billing', icon: CreditCard },
   {
     title: 'Settings',
     href: '/settings',
@@ -70,9 +75,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   // Make sure current route is highlighted correctly by normalizing paths
-  const normalizedPathname = pathname.endsWith('/') 
-    ? pathname.slice(0, -1) 
-    : pathname;
+  const routePath = pathname.startsWith('/dashboard/') ? pathname.replace('/dashboard', '') : pathname;
+  const normalizedPathname = routePath.endsWith('/')
+    ? routePath.slice(0, -1)
+    : routePath;
 
   return (
     <aside className="flex h-full w-full flex-col bg-card/80 backdrop-blur-xl">
@@ -80,8 +86,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="mb-9 flex items-center justify-between px-5">
           <div>
             <Link href="/dashboard" className="flex items-center gap-2.5 text-foreground no-underline">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-black text-primary-foreground shadow-[0_0_22px_hsl(var(--primary)/0.2)]">B</span>
-              <span className="text-base font-extrabold tracking-[-0.03em]">beanbuilt ai</span>
+              <BrandLogo />
             </Link>
             <p className="mt-3 max-w-[12rem] truncate text-xs text-muted-foreground">
               Welcome, {profile?.name || 'User'}
@@ -97,15 +102,16 @@ export function Sidebar({ onClose }: SidebarProps) {
         <nav className="space-y-1.5 px-3">
           {navItems.map((item) => {
             const href = item.href.endsWith('/') ? item.href.slice(0, -1) : item.href;
-            const isActive = normalizedPathname === href || 
-                            (href !== '/dashboard' && 
+            const isActive = normalizedPathname === href ||
+                            (href !== '/dashboard' &&
                              normalizedPathname.startsWith(href));
-            
+
             return (
               <Link
                 key={item.title}
                 href={item.href}
                 onClick={onClose}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'group flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
                   isActive

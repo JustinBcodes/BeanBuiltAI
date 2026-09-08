@@ -10,20 +10,16 @@ export const revalidate = 0
 // GET /api/user/nutrition/plan - Fetch user's nutrition plan from database
 export async function GET() {
   try {
-    console.log('🔄 Fetching nutrition plan from database')
-    
+
     // Get authenticated session
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.email) {
-      console.log('❌ No valid session found')
       return NextResponse.json(
         { error: 'Unauthorized - No valid session' },
         { status: 401 }
       )
     }
-
-    console.log('✅ Valid session found for:', session.user.email)
 
     // Get user ID
     const user = await prisma.user.findUnique({
@@ -32,7 +28,6 @@ export async function GET() {
     })
 
     if (!user) {
-      console.log('❌ User not found in database')
       return NextResponse.json(
         { error: 'User not found in database' },
         { status: 404 }
@@ -55,18 +50,11 @@ export async function GET() {
     })
 
     if (!nutritionPlan) {
-      console.log('📭 No nutrition plan found for user')
       return NextResponse.json(
         { error: 'No nutrition plan found' },
         { status: 404 }
       )
     }
-
-    console.log('✅ Nutrition plan found:', {
-      planId: nutritionPlan.id,
-      planName: nutritionPlan.planName,
-      createdAt: nutritionPlan.createdAt
-    })
 
     // Return the plan data in the expected format
     const planData = {
@@ -87,13 +75,13 @@ export async function GET() {
         'Expires': '0',
       }
     })
-    
+
   } catch (error) {
     console.error('❌ Error fetching nutrition plan:', error)
-    
+
     return NextResponse.json(
       { error: 'Internal server error while fetching nutrition plan' },
       { status: 500 }
     )
   }
-} 
+}

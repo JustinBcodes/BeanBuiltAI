@@ -2,6 +2,16 @@
 
 A personalized fitness and nutrition planning application powered by AI.
 
+## September 2026 update
+
+- Refreshed landing page with an interactive product preview, scroll reveals, FAQ, and branding prepared from the supplied logo.
+- Weekly dashboard explorer, completed-only activity totals, weight check-ins, and a pauseable rest timer.
+- Pro tools: AI plan refreshes, recipe grocery checklists, workout calendar export, and JSON plan downloads.
+- Stripe Checkout and customer portal for $12 USD/month, with server-verified membership and signed webhooks. See [STRIPE_SETUP.md](STRIPE_SETUP.md) before enabling billing.
+- Authentication, account-isolation, input-validation, request-origin, and dependency security fixes.
+
+Core tools stay available while Stripe is unconfigured. Workout/meal completion and weight history currently remain browser-local and clear on sign-out; profile, latest weight, and saved plans are stored in the account.
+
 ## Features
 
 - Personalized workout plans
