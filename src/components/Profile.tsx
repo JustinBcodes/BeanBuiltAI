@@ -43,15 +43,12 @@ const daysOfWeek = [
 ]
 
 // Define the goalType type to match the API schema
-type GoalType = 'weight_loss' | 'muscle_gain' | 'general_fitness' | 'strength_gain' | 'maintenance'; 
+type GoalType = 'weight_loss' | 'muscle_gain' | 'general_fitness' | 'strength_gain' | 'maintenance';
 type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export function Profile() {
-  const { profile, setProfile, updateProfileStats } = useStore(state => ({
-    profile: state.profile,
-    setProfile: state.setProfile,
-    updateProfileStats: state.updateProfileStats
-  }))
+  const profile = useStore(state => state.profile)
+  const updateProfileStats = useStore(state => state.updateProfileStats)
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(false)
@@ -60,12 +57,12 @@ export function Profile() {
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     age: profile?.age || '',
-    height: profile?.height || '',
-    currentWeight: profile?.currentWeight || '',
-    targetWeight: profile?.targetWeight || '',
+    height: profile?.height ? Math.round(profile.height / 2.54 * 10) / 10 : '',
+    currentWeight: profile?.currentWeight ? Math.round(profile.currentWeight * 2.2046226218 * 10) / 10 : '',
+    targetWeight: profile?.targetWeight ? Math.round(profile.targetWeight * 2.2046226218 * 10) / 10 : '',
     goalType: profile?.goalType || '',
     experienceLevel: profile?.experienceLevel || '',
-    preferredDays: profile?.preferredWorkoutDays || [],
+    preferredDays: profile?.preferredWorkoutDays.map(day => day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()) || [],
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,29 +83,29 @@ export function Profile() {
       // Prepare data for the API
       // Map 'maintenance' to 'general_fitness' since the store doesn't support 'maintenance'
       const mappedGoalType = formData.goalType === 'maintenance' ? 'general_fitness' : formData.goalType;
-      
+
       const profileData = {
         name: formData.name,
         age: Number(formData.age),
-        height: Number(formData.height),        // In inches, API will convert to cm
-        currentWeight: Number(formData.currentWeight),  // In lbs, API will convert to kg
-        targetWeight: Number(formData.targetWeight),    // In lbs, API will convert to kg
+        height: Number(formData.height) * 2.54, // Centimeters
+        currentWeight: Number(formData.currentWeight) * 0.45359237, // Kilograms
+        targetWeight: Number(formData.targetWeight) * 0.45359237, // Kilograms
         goalType: mappedGoalType as 'weight_loss' | 'muscle_gain' | 'general_fitness' | 'strength_gain',
         experienceLevel: formData.experienceLevel as ExperienceLevel,
-        preferredWorkoutDays: formData.preferredDays,
+        preferredWorkoutDays: formData.preferredDays.map(day => day.toLowerCase()),
       }
 
       // Update via the API
       const result = await updateProfileStats(profileData);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to update profile');
       }
-      
+
       toast({
         title: "Profile Updated",
-        description: result.plansRegenerated 
-          ? "Your profile and fitness plans have been updated." 
+        description: result.plansRegenerated
+          ? "Your profile and fitness plans have been updated."
           : "Your profile has been updated successfully.",
       });
     } catch (err) {
@@ -160,7 +157,7 @@ export function Profile() {
               {error}
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -306,4 +303,4 @@ export function Profile() {
       </Card>
     </div>
   )
-} 
+}

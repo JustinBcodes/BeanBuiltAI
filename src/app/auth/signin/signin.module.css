@@ -1,0 +1,165 @@
+.authPage,
+.loadingPage {
+  --lime: #b9ff3b;
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background: radial-gradient(circle at 22% 24%, rgba(155, 221, 44, 0.13), transparent 25rem), linear-gradient(135deg, #0b100c 0%, #070b08 60%, #090e0a 100%);
+  color: #f0f3ef;
+}
+
+.authPage::after {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 80%);
+  content: '';
+  pointer-events: none;
+}
+
+.brand,
+.backLink {
+  position: absolute;
+  z-index: 3;
+  top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  color: #eff2ed;
+  text-decoration: none;
+}
+
+.brand { left: 2.5rem; gap: .65rem; font-size: .8rem; font-weight: 800; }
+
+.brandMark {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  place-items: center;
+  border-radius: .45rem;
+  background: var(--lime);
+  color: #142008;
+  font-size: .75rem;
+  font-weight: 900;
+  box-shadow: 0 0 24px rgba(185,255,59,.18);
+}
+
+.backLink { right: 2.5rem; gap: .5rem; color: #747b74; font-size: .68rem; font-weight: 650; transition: color 180ms ease; }
+.backLink:hover { color: var(--lime); }
+.backLink svg { width: .9rem; }
+
+.authLayout {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: min(100% - 3rem, 67rem);
+  min-height: 100svh;
+  grid-template-columns: 1.05fr .95fr;
+  align-items: center;
+  gap: clamp(4rem, 9vw, 8rem);
+  margin: 0 auto;
+  padding: 7rem 0 4rem;
+}
+
+.authIntro h1 {
+  max-width: 34rem;
+  margin: 1.25rem 0 1.5rem;
+  font-size: clamp(3.7rem, 6.5vw, 6.5rem);
+  font-weight: 740;
+  letter-spacing: -.075em;
+  line-height: .92;
+}
+
+.authIntro h1 em { display: block; color: var(--lime); font-style: normal; }
+.authIntro > p { max-width: 28rem; margin: 0; color: #8d948d; font-size: .9rem; line-height: 1.7; }
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  color: var(--lime);
+  font-size: .66rem;
+  font-weight: 850;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.eyebrow svg { width: .85rem; }
+.proofRow { display: flex; gap: 2.5rem; margin-top: 3.25rem; }
+.proofRow div { display: flex; flex-direction: column; }
+.proofRow strong { font-size: 1.45rem; letter-spacing: -.055em; }
+.proofRow span { margin-top: .25rem; color: #626a62; font-size: .62rem; }
+
+.authCard {
+  position: relative;
+  border-color: rgba(204,228,199,.12) !important;
+  border-radius: 1.65rem !important;
+  background: linear-gradient(145deg, rgba(21,27,22,.96), rgba(12,16,13,.98)) !important;
+  box-shadow: 0 40px 100px rgba(0,0,0,.42) !important;
+}
+
+.authCard::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(transparent, var(--lime), transparent);
+  content: '';
+  opacity: .5;
+}
+
+.cardHeader { padding: 2.4rem 2.4rem 1rem !important; }
+.cardContent { padding: 1.25rem 2.4rem 2.4rem !important; }
+.cardKicker { color: var(--lime); font-size: .64rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.cardTitle { margin-top: .75rem; font-size: 1.75rem !important; letter-spacing: -.045em !important; line-height: 1.15 !important; }
+.cardDescription { max-width: 21rem; margin-top: .55rem; color: #858c85 !important; font-size: .78rem !important; line-height: 1.55; }
+
+.googleButton {
+  display: grid !important;
+  width: 100%;
+  height: 3.65rem !important;
+  grid-template-columns: auto 1fr auto;
+  gap: .85rem !important;
+  padding: .35rem .55rem !important;
+  border-color: rgba(230,239,227,.13) !important;
+  border-radius: .9rem !important;
+  background: rgba(255,255,255,.035) !important;
+  color: #edf0eb !important;
+  text-align: left;
+}
+
+.googleButton:hover { border-color: rgba(185,255,59,.28) !important; background: rgba(185,255,59,.07) !important; }
+.googleIconWrap { display: grid; width: 2.55rem; height: 2.55rem; place-items: center; border-radius: .65rem; background: #f5f7f4; color: #111; }
+.buttonArrow { margin-right: .7rem; color: var(--lime); }
+
+.securityNote { display: flex; align-items: center; gap: .5rem; margin-top: 1.35rem; color: #798079; font-size: .66rem; }
+.securityNote svg { width: .85rem; color: var(--lime); }
+.legal { margin: 2rem 0 0; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,.06); color: #565d57; font-size: .58rem; line-height: 1.5; text-align: center; }
+.errorMessage { margin-bottom: 1rem; padding: .8rem 1rem; border: 1px solid rgba(239,68,68,.22); border-radius: .75rem; background: rgba(239,68,68,.08); color: #fca5a5; font-size: .7rem; line-height: 1.5; }
+
+.glow { position: absolute; top: 50%; left: 22%; width: 24rem; height: 24rem; border-radius: 50%; background: rgba(159,231,44,.09); filter: blur(100px); transform: translate(-50%,-50%); }
+.orbit { position: absolute; top: 50%; left: 22%; width: min(42vw,36rem); aspect-ratio: 1; border: 1px solid rgba(185,255,59,.08); border-radius: 50%; transform: translate(-50%,-50%); }
+.orbit span { position: absolute; inset: 17%; border: 1px solid rgba(185,255,59,.07); border-radius: 50%; }
+
+.loadingPage { display: grid; place-items: center; }
+.loadingState { display: flex; align-items: center; gap: .75rem; color: #838a83; font-size: .75rem; }
+.loadingState p { margin: 0; }
+
+@media (max-width: 800px) {
+  .authLayout { width: min(100% - 2rem,30rem); grid-template-columns: 1fr; gap: 3rem; padding-top: 8.5rem; }
+  .authIntro { text-align: center; }
+  .authIntro > p { margin-inline: auto; }
+  .eyebrow, .proofRow { justify-content: center; }
+  .authIntro h1 { font-size: clamp(3.3rem,16vw,5.5rem); }
+  .orbit { left: 50%; width: 95vw; }
+  .glow { left: 50%; }
+}
+
+@media (max-width: 520px) {
+  .brand { top: 1.25rem; left: 1.25rem; }
+  .backLink { top: 1.35rem; right: 1.25rem; }
+  .authLayout { padding-top: 7.5rem; }
+  .proofRow { margin-top: 2rem; }
+  .cardHeader { padding: 1.8rem 1.4rem .8rem !important; }
+  .cardContent { padding: 1rem 1.4rem 1.6rem !important; }
+}

@@ -38,7 +38,6 @@ export function ProgressTracking() {
     profile,
     weightProgress,
     updateWeightProgress,
-    updateCurrentWeight,
   } = useStore()
 
   const [loading, setLoading] = useState(false)
@@ -56,15 +55,12 @@ export function ProgressTracking() {
     try {
       const weightInLbs = Number(newWeight)
       const weightInKg = lbsToKg(weightInLbs)
-      
-      // Update current weight in the store (which is stored in kg)
-      updateCurrentWeight(weightInKg)
-      
+
       // Update weight progress
       await updateWeightProgress(weightInKg)
-      
+
       setNewWeight('')
-      
+
       toast({
         title: "Weight Updated",
         description: "Your weight has been logged successfully.",
@@ -126,23 +122,23 @@ export function ProgressTracking() {
   // Convert weights from kg to lbs for display
   const currentWeightLbs = kgToLbs(profile.currentWeight)
   const targetWeightLbs = kgToLbs(profile.targetWeight)
-  
+
   // Calculate weight difference in lbs
   const weightDifference = currentWeightLbs - targetWeightLbs
-  
+
   // Calculate progress percentage based on starting weight and current progress
-  const startWeight = weightProgress?.weights[0] 
-    ? kgToLbs(weightProgress.weights[0]) 
+  const startWeight = weightProgress?.weights[0]
+    ? kgToLbs(weightProgress.weights[0])
     : currentWeightLbs
-  
+
   const totalWeightToLose = Math.abs(startWeight - targetWeightLbs)
   const weightLostSoFar = Math.abs(startWeight - currentWeightLbs)
-  const progressPercentage = totalWeightToLose > 0 
+  const progressPercentage = totalWeightToLose > 0
     ? Math.min(100, (weightLostSoFar / totalWeightToLose) * 100)
     : 0
 
   // Create chart data from weightProgress if available, converting to lbs
-  const chartData = weightProgress ? 
+  const chartData = weightProgress ?
     weightProgress.dates.map((date, index) => ({
       date: new Date(date).toLocaleDateString(),
       weight: kgToLbs(weightProgress.weights[index])
@@ -216,8 +212,8 @@ export function ProgressTracking() {
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
-                  <YAxis 
-                    domain={['dataMin - 5', 'dataMax + 5']} 
+                  <YAxis
+                    domain={['dataMin - 5', 'dataMax + 5']}
                     label={{ value: 'Weight (lbs)', angle: -90, position: 'insideLeft' }}
                   />
                   <Tooltip formatter={(value) => [`${value} lbs`, 'Weight']} />
@@ -279,4 +275,4 @@ export function ProgressTracking() {
       </Card>
     </div>
   )
-} 
+}

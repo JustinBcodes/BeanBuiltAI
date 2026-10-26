@@ -8,16 +8,13 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.email) {
-      console.log('No session or email found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    console.log('Checking status for user:', session.user.email)
 
     // Get user's onboarding status and plans
     const user = await prisma.user.findUnique({
@@ -39,7 +36,6 @@ export async function GET() {
     })
 
     if (!user) {
-      console.log('User not found:', session.user.email)
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -47,16 +43,8 @@ export async function GET() {
     }
 
     // Check if plans exist and are not empty
-    const hasWorkoutPlan = user.workoutPlans.length > 0 && user.workoutPlans[0].plan
-    const hasNutritionPlan = user.nutritionPlans.length > 0 && user.nutritionPlans[0].plan
-
-    console.log('User status:', {
-      hasCompletedOnboarding: user.hasCompletedOnboarding,
-      hasWorkoutPlan,
-      hasNutritionPlan,
-      workoutPlanCount: user.workoutPlans.length,
-      nutritionPlanCount: user.nutritionPlans.length
-    })
+    const hasWorkoutPlan = user.workoutPlans.length > 0 && !!user.workoutPlans[0].plan
+    const hasNutritionPlan = user.nutritionPlans.length > 0 && !!user.nutritionPlans[0].plan
 
     return NextResponse.json({
       hasCompletedOnboarding: user.hasCompletedOnboarding,
@@ -68,8 +56,8 @@ export async function GET() {
   } catch (error) {
     console.error('Error in status endpoint:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error', details: 'Unknown error' },
       { status: 500 }
     )
   }
-} 
+}

@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -8,7 +9,7 @@ import { AlertTriangle } from 'lucide-react'
 // Force dynamic rendering for NextAuth server-side data
 export const dynamic = 'force-dynamic'
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
@@ -54,4 +55,5 @@ export default function AuthErrorPage() {
       </Card>
     </div>
   )
-} 
+}
+export default function AuthErrorPage() { return <Suspense fallback={<div className="p-8 text-center">Loading...</div>}><AuthErrorContent /></Suspense> }

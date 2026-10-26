@@ -2,6 +2,16 @@
 
 A personalized fitness and nutrition planning application powered by AI.
 
+## September 2026 update
+
+- Refreshed landing page with an interactive product preview, scroll reveals, FAQ, and branding prepared from the supplied logo.
+- Weekly dashboard explorer, completed-only activity totals, weight check-ins, and a pauseable rest timer.
+- Pro tools: AI plan refreshes, recipe grocery checklists, workout calendar export, and JSON plan downloads.
+- Stripe Checkout and customer portal for $12 USD/month, with server-verified membership and signed webhooks. See [STRIPE_SETUP.md](STRIPE_SETUP.md) before enabling billing.
+- Authentication, account-isolation, input-validation, request-origin, and dependency security fixes.
+
+Core tools stay available while Stripe is unconfigured. Workout/meal completion and weight history currently remain browser-local and clear on sign-out; profile, latest weight, and saved plans are stored in the account.
+
 ## Features
 
 - Personalized workout plans
@@ -12,7 +22,7 @@ A personalized fitness and nutrition planning application powered by AI.
 
 ## Tech Stack
 
-- Next.js 14 (App Router)
+- Next.js 16 (App Router; Node.js 20.9 or later)
 - React
 - TypeScript
 - Prisma (PostgreSQL)
@@ -56,6 +66,14 @@ A personalized fitness and nutrition planning application powered by AI.
    ```bash
    npm run dev
    ```
+
+For production, set `NEXTAUTH_URL` to the exact public HTTPS origin used by
+the app. Requests that change account data are rejected if their origin does
+not match it. Configure the reverse proxy to redirect alternate hostnames to
+the canonical origin, and apply request-size, timeout, and traffic limits at
+the edge. Set AI-provider spending caps separately; per-account AI limits do
+not prevent abuse through many accounts. Verify database migration status and
+Stripe configuration in a staging environment before deploying.
 
 ## Project Structure
 

@@ -1,22 +1,22 @@
+import { weightUpdateSchema } from '@/lib/validations/profile'
+import { validateMutationRequest, readJsonBody, requestErrorResponse } from '@/lib/api-security'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
+  const rejected = validateMutationRequest(request)
+  if (rejected) return rejected
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { weight } = await request.json()
-    if (!weight || typeof weight !== 'number') {
-      return NextResponse.json(
-        { error: 'Weight is required and must be a number' },
-        { status: 400 }
-      )
-    }
+    const result = weightUpdateSchema.safeParse(await readJsonBody(request))
+    if (!result.success) return NextResponse.json({ error: 'Enter a valid weight in kilograms' }, { status: 400 })
+    const { weight } = result.data
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
@@ -37,10 +37,12 @@ export async function POST(request: Request) {
       weight: updatedUser.weight
     })
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('Error updating weight:', error)
     return NextResponse.json(
       { error: 'Failed to update weight. Please try again.' },
       { status: 500 }
     )
   }
-} 
+}

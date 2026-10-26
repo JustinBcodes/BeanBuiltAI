@@ -1,3 +1,5 @@
+import { authorizeAiGeneration } from '@/lib/ai-access'
+import { validateMutationRequest, readJsonBody, requestErrorResponse } from '@/lib/api-security'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -6,13 +8,14 @@ import { generateNutritionPlan } from '@/lib/openai'
 import { validateNutritionPlan, createFallbackNutritionPlan } from '@/lib/validators'
 
 export async function POST(request: Request) {
+  const rejected = validateMutationRequest(request)
+  if (rejected) return rejected
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { preferences } = await request.json()
     const user = await prisma.user.findUnique({
       where: { email: session.user.email }
     })
@@ -29,10 +32,13 @@ export async function POST(request: Request) {
       )
     }
 
+    const accessDenied = await authorizeAiGeneration(user.id)
+    if (accessDenied) return accessDenied
+
     // Validate required fields
     const requiredFields = ['age', 'sex', 'height', 'weight', 'goalType', 'experienceLevel'];
     const missingFields = requiredFields.filter(field => !user[field as keyof typeof user]);
-    
+
     if (missingFields.length > 0) {
       console.warn(`Missing user data fields for nutrition plan: ${missingFields.join(', ')}. Using defaults.`);
     }
@@ -57,7 +63,7 @@ export async function POST(request: Request) {
       if (!validatedPlan) {
         console.error('Generated nutrition plan failed validation, using fallback plan');
         const fallbackPlan = createFallbackNutritionPlan();
-        
+
         // Save the fallback plan
         await prisma.nutritionPlan.create({
           data: {
@@ -67,7 +73,7 @@ export async function POST(request: Request) {
             endDate: user.targetDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
           }
         });
-        
+
         return NextResponse.json(fallbackPlan)
       }
 
@@ -92,7 +98,7 @@ export async function POST(request: Request) {
       console.error('Error with OpenAI integration:', openaiError);
       // Fallback to a default plan if OpenAI fails
       const fallbackPlan = createFallbackNutritionPlan();
-      
+
       // Save the fallback plan
       await prisma.nutritionPlan.create({
         data: {
@@ -102,14 +108,16 @@ export async function POST(request: Request) {
           endDate: user.targetDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         }
       });
-      
+
       return NextResponse.json(fallbackPlan)
     }
   } catch (error) {
+    const badRequest = requestErrorResponse(error)
+    if (badRequest) return badRequest
     console.error('Error generating nutrition plan:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate nutrition plan' },
+      { error: 'Failed to generate nutrition plan' },
       { status: 500 }
     )
   }
-} 
+}

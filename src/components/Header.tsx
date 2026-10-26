@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { BrandLogo } from '@/components/BrandLogo'
 import { UserNav } from './UserNav'
 import { Button } from '@/components/ui/button'
-import { Menu, Bell, Dumbbell } from 'lucide-react'
+import { Menu, Sparkles } from 'lucide-react'
 
 interface HeaderProps {
   onMobileMenuToggle: () => void;
@@ -12,8 +13,8 @@ interface HeaderProps {
 
 export function Header({ onMobileMenuToggle, showMenuButton = true }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 w-full bg-card/95 backdrop-blur-lg border-b border-border shadow-sm">
-      <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+    <header className="sticky top-0 z-30 w-full border-b border-border/70 bg-background/75 backdrop-blur-xl">
+      <div className="flex h-[4.5rem] items-center justify-between px-4 md:px-7 lg:px-10">
         <div className="flex items-center space-x-2">
           {showMenuButton && (
             <Button
@@ -27,22 +28,17 @@ export function Header({ onMobileMenuToggle, showMenuButton = true }: HeaderProp
             </Button>
           )}
 
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <Dumbbell className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg text-foreground hidden sm:inline-block">
-              BeanBuilt AI
-            </span>
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <span className="sm:hidden"><BrandLogo compact /></span>
+            <span className="hidden sm:block"><BrandLogo /></span>
           </Link>
         </div>
 
         <div className="flex items-center space-x-3 sm:space-x-4">
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <Button asChild variant="ghost" className="text-primary"><Link href="/pro"><Sparkles className="mr-2 h-4 w-4" />Pro tools</Link></Button>
           <UserNav />
         </div>
       </div>
     </header>
   )
-} 
+}

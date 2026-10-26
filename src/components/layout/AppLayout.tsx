@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { useState, useEffect } from 'react'
 import { useStore } from '@/store'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -21,69 +22,50 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isLandingPage = pathname === '/'
   const isAuthPage = pathname.startsWith('/auth/')
   const isOnboardingPage = pathname.startsWith('/onboarding')
-  
+
   // For landing page, auth pages, just render children without app shell
   if (isLandingPage || isAuthPage) {
-    return <>{children}</>; 
+    return <>{children}</>;
   }
 
   // Show sidebar only if onboarding is complete and we're not on onboarding page
   const showSidebar = profile?.hasCompletedOnboarding && !isOnboardingPage
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="app-shell flex h-dvh bg-background text-foreground">
       {/* Sidebar for larger screens - only show if onboarding is complete */}
       {showSidebar && (
-        <div className="hidden lg:block">
+        <div className="hidden w-[17rem] shrink-0 lg:block">
           <motion.div
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30, duration: 0.2 }}
-            className="h-screen border-r border-border"
+            className="h-screen border-r border-border/70"
           >
             <Sidebar />
           </motion.div>
         </div>
       )}
 
-      {/* Mobile Sidebar (Drawer) - controlled by Header, only shown if onboarding complete */}
-      <AnimatePresence>
-        {mobileSidebarOpen && showSidebar && (
-          <div className="lg:hidden fixed inset-0 z-50">
-            {/* Backdrop */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setMobileSidebarOpen(false)}
-            />
-            {/* Sidebar content */}
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30, duration: 0.3 }}
-              className="relative z-50 h-full w-80 max-w-[80%] bg-card shadow-xl border-r border-border"
-            >
-              <Sidebar onClose={() => setMobileSidebarOpen(false)} />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <Dialog open={mobileSidebarOpen && !!showSidebar} onOpenChange={setMobileSidebarOpen}>
+        <DialogContent className="fixed inset-y-0 left-0 top-0 h-dvh w-80 max-w-[85vw] translate-x-0 translate-y-0 gap-0 rounded-none border-y-0 border-l-0 p-0 sm:rounded-none [&>button]:hidden">
+          <DialogTitle className="sr-only">Main navigation</DialogTitle>
+          <DialogDescription className="sr-only">Choose a page or close this menu to return to your dashboard.</DialogDescription>
+          <Sidebar onClose={() => setMobileSidebarOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Only show Header with hamburger menu if sidebar should be shown */}
         <Header onMobileMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} showMenuButton={!!showSidebar} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="app-main flex-1 overflow-y-auto p-4 md:p-7 lg:p-10">
           <motion.div
             key={pathname} // Add key to re-trigger animation on route change
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="max-w-7xl mx-auto"
+            className="mx-auto w-full max-w-[86rem]"
           >
             {children}
           </motion.div>
@@ -91,4 +73,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   )
-} 
+}

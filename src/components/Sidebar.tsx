@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandLogo } from '@/components/BrandLogo'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -15,7 +16,9 @@ import {
   Activity,
   LineChart,
   X,
-  Lightbulb
+  Lightbulb,
+  Sparkles,
+  CreditCard
 } from 'lucide-react'
 
 const navItems = [
@@ -49,6 +52,8 @@ const navItems = [
     href: '/tips',
     icon: Lightbulb
   },
+  { title: 'Pro tools', href: '/pro', icon: Sparkles },
+  { title: 'Membership', href: '/billing', icon: CreditCard },
   {
     title: 'Settings',
     href: '/settings',
@@ -70,19 +75,20 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   // Make sure current route is highlighted correctly by normalizing paths
-  const normalizedPathname = pathname.endsWith('/') 
-    ? pathname.slice(0, -1) 
-    : pathname;
+  const routePath = pathname.startsWith('/dashboard/') ? pathname.replace('/dashboard', '') : pathname;
+  const normalizedPathname = routePath.endsWith('/')
+    ? routePath.slice(0, -1)
+    : routePath;
 
   return (
-    <div className="flex flex-col h-full w-full bg-card">
-      <div className="flex-1 py-6 overflow-y-auto">
-        <div className="px-4 mb-8 flex items-center justify-between">
+    <aside className="flex h-full w-full flex-col bg-card/80 backdrop-blur-xl">
+      <div className="flex-1 overflow-y-auto py-6">
+        <div className="mb-9 flex items-center justify-between px-5">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              BeanBuilt AI
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <Link href="/dashboard" className="flex items-center gap-2.5 text-foreground no-underline">
+              <BrandLogo />
+            </Link>
+            <p className="mt-3 max-w-[12rem] truncate text-xs text-muted-foreground">
               Welcome, {profile?.name || 'User'}
             </p>
           </div>
@@ -93,28 +99,29 @@ export function Sidebar({ onClose }: SidebarProps) {
             </Button>
           )}
         </div>
-        <nav className="space-y-1 px-3">
+        <nav className="space-y-1.5 px-3">
           {navItems.map((item) => {
             const href = item.href.endsWith('/') ? item.href.slice(0, -1) : item.href;
-            const isActive = normalizedPathname === href || 
-                            (href !== '/dashboard' && 
+            const isActive = normalizedPathname === href ||
+                            (href !== '/dashboard' &&
                              normalizedPathname.startsWith(href));
-            
+
             return (
               <Link
                 key={item.title}
                 href={item.href}
                 onClick={onClose}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors',
+                  'group flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-[0_8px_26px_hsl(var(--primary)/0.12)]'
+                    : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
                 )}
               >
                 <item.icon className={cn(
                   "mr-3 h-5 w-5 flex-shrink-0",
-                  isActive ? "text-primary-foreground" : "text-muted-foreground"
+                  isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                 )} />
                 {item.title}
               </Link>
@@ -122,9 +129,9 @@ export function Sidebar({ onClose }: SidebarProps) {
           })}
         </nav>
       </div>
-      <div className="mt-auto p-4 border-t border-border">
-        <SignOutButton variant="ghost" className="w-full justify-start text-foreground/70 hover:text-foreground" />
+      <div className="mt-auto border-t border-border/70 p-4">
+        <SignOutButton variant="ghost" className="w-full justify-start rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground" />
       </div>
-    </div>
+    </aside>
   )
-} 
+}

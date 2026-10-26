@@ -2,12 +2,12 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createStaticNutritionPlan, mealLibrary, StaticMealDataItem, MealLibrary } from '@/data/meals'
 import { createStaticWorkoutPlan, workoutLibrary, StaticWorkoutDay, WorkoutLibrary as StaticWorkoutLibType } from '@/data/workouts'
-import type { 
+import type {
   Profile,
-  WorkoutPlan, 
-  NutritionPlan, 
-  WeeklyWorkoutScheduleItem, 
-  MealItem, 
+  WorkoutPlan,
+  NutritionPlan,
+  WeeklyWorkoutScheduleItem,
+  MealItem,
   DailyMealPlan,
   WeeklyMealPlan,
   WorkoutExercise,
@@ -138,7 +138,7 @@ interface Store {
   workoutProgress: WorkoutProgress | null
   nutritionProgress: NutritionProgress | null
   weightProgress: WeightProgress | null
-  
+
   // Internal state flags to prevent race conditions
   isGeneratingPlans: boolean
   isResetting: boolean
@@ -198,9 +198,9 @@ const generateNewWeeklyMealPlanData = (existingPlan?: NutritionPlan): WeeklyMeal
     } else {
       snack2 = getRandomItem(mealLibrary.snacks); // Fallback if only one snack type
     }
-    
+
     const allMeals: MealItem[] = [breakfast, lunch, dinner, snack1, snack2].map(m => ({
-        ...m, 
+        ...m,
         ingredients: m.ingredients.map(ing => ({...ing, item: ing.item, qty: ing.qty})), // Ensure ingredients are mapped correctly
         completed: false,
     }));
@@ -251,9 +251,9 @@ export const useStore = create<Store>()(
           console.error("❌ Null workout plan provided to setWorkoutPlan");
           return;
         }
-        
+
         let validPlan = plan;
-        
+
         // Handle old format conversion only if needed
         if (!Array.isArray(plan.multiWeekSchedules) && Array.isArray((plan as any).weeklySchedule)) {
           console.log("🔄 Converting old workout plan format to new format");
@@ -263,7 +263,7 @@ export const useStore = create<Store>()(
             currentWeekIndex: 0
           };
         }
-        
+
         // Only regenerate if the plan is completely invalid
         if (!Array.isArray(validPlan.multiWeekSchedules) || validPlan.multiWeekSchedules.length === 0) {
           console.error("❌ Invalid workout plan structure, regenerating");
@@ -274,21 +274,21 @@ export const useStore = create<Store>()(
             firstWeekDaysCount: validPlan.multiWeekSchedules?.[0]?.length
           });
         }
-        
+
         // Set the current viewed week index to match the plan's current week
         const newCurrentWeekIndex = validPlan.currentWeekIndex || 0;
-        
+
         console.log("✅ Setting workout plan in Zustand:", {
           planName: validPlan.planName,
           currentWeekIndex: newCurrentWeekIndex,
           totalWeeks: validPlan.multiWeekSchedules?.length
         });
-        
-        set({ 
+
+        set({
           workoutPlan: validPlan,
           currentViewedWeekIndex: newCurrentWeekIndex
         });
-        
+
         // Initialize progress after setting the plan
         get().initializeProgressFromPlans(validPlan, get().nutritionPlan);
       },
@@ -306,17 +306,17 @@ export const useStore = create<Store>()(
         // ✅ Plans are static.
         // 🤖 AI is only used to suggest substitutions or macro tweaks after plan generation.
         // ❌ AI does not create or replace full plans.
-        
+
         // Defensive: validate plan structure before setting
         let validPlan = plan;
-        
+
         try {
           // Check if plan is valid overall (has multiWeekMealPlans or older weeklyMealPlan format)
-          if (!plan || 
+          if (!plan ||
               (!Array.isArray(plan.multiWeekMealPlans) && !(plan as any).weeklyMealPlan)) {
             console.error("❌ Invalid nutrition plan format detected in setNutritionPlan. Regenerating a valid plan.");
             const currentProfile = get().profile;
-            const prefs = currentProfile ? { 
+            const prefs = currentProfile ? {
               goalType: currentProfile.goalType,
               currentWeight: currentProfile.currentWeight,
               height: currentProfile.height,
@@ -329,7 +329,7 @@ export const useStore = create<Store>()(
               weeksCount: validPlan.multiWeekMealPlans?.length
             });
           }
-          
+
           // Handle transition from old plan format (weeklyMealPlan) to new format (multiWeekMealPlans)
           if (validPlan && !Array.isArray(validPlan.multiWeekMealPlans) && (validPlan as any).weeklyMealPlan) {
             console.log("🔄 Converting old nutrition plan format to new format");
@@ -339,7 +339,7 @@ export const useStore = create<Store>()(
               currentWeekIndex: 0
             };
           }
-          
+
           // Ensure multiWeekMealPlans is always an array
           if (validPlan && !Array.isArray(validPlan.multiWeekMealPlans)) {
             console.warn("⚠️ multiWeekMealPlans is not an array, fixing");
@@ -348,7 +348,7 @@ export const useStore = create<Store>()(
               multiWeekMealPlans: [],
             };
           }
-          
+
           // Ensure each week in multiWeekMealPlans is a valid structure
           if (validPlan && Array.isArray(validPlan.multiWeekMealPlans)) {
             const requiredDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -357,29 +357,29 @@ export const useStore = create<Store>()(
                 console.error(`❌ Invalid week ${weekIndex} format in nutrition plan (null or not an object)`, week);
                 // Generate a default week structure
                 const currentProfile = get().profile;
-                const prefs = currentProfile ? { 
+                const prefs = currentProfile ? {
                   goalType: currentProfile.goalType,
                   currentWeight: currentProfile.currentWeight,
                 } : undefined;
                 return createStaticNutritionPlan(prefs).multiWeekMealPlans[0];
               }
-              
+
               // Check all days exist
-              if (!requiredDays.every(day => 
-                  (week as any)[day] && 
-                  typeof (week as any)[day] === 'object' && 
+              if (!requiredDays.every(day =>
+                  (week as any)[day] &&
+                  typeof (week as any)[day] === 'object' &&
                   Array.isArray((week as any)[day].meals)
               )) {
                 console.error(`❌ Invalid week ${weekIndex} format in nutrition plan (missing days or invalid day structure)`, week);
                 // Generate a default week structure
                 const currentProfile = get().profile;
-                const prefs = currentProfile ? { 
+                const prefs = currentProfile ? {
                   goalType: currentProfile.goalType,
                   currentWeight: currentProfile.currentWeight,
                 } : undefined;
                 return createStaticNutritionPlan(prefs).multiWeekMealPlans[0];
               }
-              
+
               // Verify each day has meals
               let needsReplacement = false;
               requiredDays.forEach(day => {
@@ -388,26 +388,26 @@ export const useStore = create<Store>()(
                   needsReplacement = true;
                 }
               });
-              
+
               if (needsReplacement) {
                 console.error(`❌ Week ${weekIndex} needs replacement due to invalid day structure`);
                 const currentProfile = get().profile;
-                const prefs = currentProfile ? { 
+                const prefs = currentProfile ? {
                   goalType: currentProfile.goalType,
                   currentWeight: currentProfile.currentWeight,
                 } : undefined;
                 return createStaticNutritionPlan(prefs).multiWeekMealPlans[0];
               }
-              
+
               return week;
             });
-            
+
             validPlan = {
               ...validPlan,
               multiWeekMealPlans: validWeeks
             };
           }
-          
+
           // Ensure at least one week exists
           if (validPlan && (!Array.isArray(validPlan.multiWeekMealPlans) || validPlan.multiWeekMealPlans.length === 0)) {
             console.error("❌ No weeks in multiWeekMealPlans after validation");
@@ -419,11 +419,11 @@ export const useStore = create<Store>()(
             validPlan = newPlan;
             console.log("✅ Created new nutrition plan with weeks:", validPlan.multiWeekMealPlans?.length);
           }
-          
+
           // Validate currentWeekIndex
           if (validPlan && (
-              typeof validPlan.currentWeekIndex !== 'number' || 
-              validPlan.currentWeekIndex < 0 || 
+              typeof validPlan.currentWeekIndex !== 'number' ||
+              validPlan.currentWeekIndex < 0 ||
               (Array.isArray(validPlan.multiWeekMealPlans) && validPlan.currentWeekIndex >= validPlan.multiWeekMealPlans.length)
           )) {
             console.warn("⚠️ Invalid currentWeekIndex, setting to 0");
@@ -432,24 +432,24 @@ export const useStore = create<Store>()(
               currentWeekIndex: 0
             };
           }
-          
+
           // Final validation before setting
-          if (!validPlan || 
-              !Array.isArray(validPlan.multiWeekMealPlans) || 
+          if (!validPlan ||
+              !Array.isArray(validPlan.multiWeekMealPlans) ||
               validPlan.multiWeekMealPlans.length === 0) {
             console.error("❌ Final validation failed, using emergency plan");
             validPlan = createStaticNutritionPlan(); // Use default static plan as last resort
           }
-          
+
           console.log("✅ Setting nutrition plan in Zustand:", {
             planName: validPlan.planName,
             currentWeekIndex: validPlan.currentWeekIndex,
             totalWeeks: validPlan.multiWeekMealPlans?.length,
             dailyTargets: validPlan.dailyTargets
           });
-          
+
           set({ nutritionPlan: validPlan });
-          
+
           // Initialize progress with the validated plan
           get().initializeProgressFromPlans(get().workoutPlan, validPlan);
         } catch (error) {
@@ -461,13 +461,16 @@ export const useStore = create<Store>()(
           get().initializeProgressFromPlans(get().workoutPlan, emergencyPlan);
         }
       },
-      resetStore: () => set({ 
-        profile: null, 
-        workoutPlan: null, 
+      resetStore: () => set({
+        profile: null,
+        workoutPlan: null,
         nutritionPlan: null,
         workoutProgress: null,
         nutritionProgress: null,
-        weightProgress: null
+        weightProgress: null,
+        isGeneratingPlans: false,
+        isResetting: false,
+        currentViewedWeekIndex: 0
       }),
 
       // ✅ Plans are static
@@ -528,7 +531,7 @@ export const useStore = create<Store>()(
           });
 
           const workoutPrefs = {
-            workoutSplit: preferences?.workout?.workoutSplit || 
+            workoutSplit: preferences?.workout?.workoutSplit ||
                           (safeProfile.experienceLevel === 'beginner' ? 'FullBody' : 'PPL'),
             goalType: safeProfile.goalType,
             experienceLevel: safeProfile.experienceLevel,
@@ -592,38 +595,38 @@ export const useStore = create<Store>()(
             console.error("❌ Invalid workout plan structure, using emergency fallback");
             finalWorkoutPlan = createStaticWorkoutPlan(); // Emergency fallback
           }
-          
+
           console.log("🔄 Setting plans using validated setters...");
-          
+
           // Set the plans using the validated setters
           get().setWorkoutPlan(finalWorkoutPlan);
           get().setNutritionPlan(finalNutritionPlan);
-          
+
           console.log("✅ Plans set successfully in Zustand store");
-          
+
           // If we created a default profile, set it too
           if (!currentProfile && effectiveProfile) {
             console.log("🔄 Setting profile in store");
             set({ profile: effectiveProfile });
           }
-          
+
         } catch (error) {
           console.error("❌ Error generating plans:", error);
-          
+
           // Emergency fallback - create minimal valid plans
           try {
             console.log("🚨 Creating emergency fallback plans...");
             const emergencyWorkout = createStaticWorkoutPlan();
             const emergencyNutrition = createStaticNutritionPlan();
-            
+
             console.log("✅ Emergency plans created:", {
               workout: emergencyWorkout.planName,
               nutrition: emergencyNutrition.planName
             });
-            
+
             get().setWorkoutPlan(emergencyWorkout);
             get().setNutritionPlan(emergencyNutrition);
-            
+
           } catch (fallbackError) {
             console.error("🚨 Emergency fallback failed:", fallbackError);
           }
@@ -635,69 +638,69 @@ export const useStore = create<Store>()(
 
       toggleExerciseCompletion: (dayOfWeek, exerciseIdentifier, exerciseIndex) => {
         console.log('🎯 NEW SIMPLE TOGGLE - Exercise:', { dayOfWeek, exerciseIdentifier, exerciseIndex });
-        
+
         set((state) => {
           // Simple deep clone to avoid mutations
           const newState = JSON.parse(JSON.stringify(state));
-          
+
           if (!newState.workoutProgress?.weeklySchedule?.[0]) {
             console.log('❌ No workout progress found');
             return state;
           }
-          
+
           // Find the day
-          const dayItem = newState.workoutProgress.weeklySchedule[0].find((day: any) => 
+          const dayItem = newState.workoutProgress.weeklySchedule[0].find((day: any) =>
             day.dayOfWeek === dayOfWeek
           );
-          
+
           if (!dayItem?.workoutDetails?.exercises) {
             console.log('❌ No exercises found for day:', dayOfWeek);
             return state;
           }
-          
+
           // Toggle the specific exercise
           if (exerciseIndex !== undefined && dayItem.workoutDetails.exercises[exerciseIndex]) {
-            dayItem.workoutDetails.exercises[exerciseIndex].completed = 
+            dayItem.workoutDetails.exercises[exerciseIndex].completed =
               !dayItem.workoutDetails.exercises[exerciseIndex].completed;
-            
-            console.log('✅ Toggled exercise:', dayItem.workoutDetails.exercises[exerciseIndex].name, 
+
+            console.log('✅ Toggled exercise:', dayItem.workoutDetails.exercises[exerciseIndex].name,
               'to', dayItem.workoutDetails.exercises[exerciseIndex].completed);
-            
+
             // Update workout completion
             dayItem.workoutDetails.completed = dayItem.workoutDetails.exercises.every((ex: any) => ex.completed);
           }
-          
+
           return newState;
         });
       },
 
       toggleMealCompletion: (dayOfWeek, mealType, mealIdentifier) => {
         console.log('🎯 NEW SIMPLE TOGGLE - Meal:', { dayOfWeek, mealType, mealIdentifier });
-        
+
         set((state) => {
           // Simple deep clone to avoid mutations
           const newState = JSON.parse(JSON.stringify(state));
-          
+
           if (!newState.nutritionProgress?.weeklyMealProgress?.[0]) {
             console.log('❌ No nutrition progress found');
             return state;
           }
-          
+
           // Find the day
-          const dayItem = newState.nutritionProgress.weeklyMealProgress[0].find((day: any) => 
+          const dayItem = newState.nutritionProgress.weeklyMealProgress[0].find((day: any) =>
             day.dayOfWeek === dayOfWeek
           );
-          
+
           if (!dayItem?.meals) {
             console.log('❌ No meals found for day:', dayOfWeek);
             return state;
           }
-          
+
           // Find and toggle the meal
           let mealFound = false;
           for (let i = 0; i < dayItem.meals.length; i++) {
             const meal = dayItem.meals[i];
-            
+
             // Simple matching logic
             if (mealType === 'snacks') {
               // For snacks, use index
@@ -717,12 +720,12 @@ export const useStore = create<Store>()(
               }
             }
           }
-          
+
           if (!mealFound) {
             console.log('❌ Meal not found:', { mealType, mealIdentifier });
             return state;
           }
-          
+
           return newState;
         });
       },
@@ -745,22 +748,22 @@ export const useStore = create<Store>()(
                     // Return an empty array as fallback if week schedule is invalid
                     return [];
                 }
-                
+
                 return weekSchedule.map(dayPlan => ({
                     dayOfWeek: dayPlan.dayOfWeek,
                     isRestDay: dayPlan.isRestDay,
                     workoutDetails: dayPlan.isRestDay || !dayPlan.workoutDetails ? null : {
                         ...dayPlan.workoutDetails,
-                        exercises: Array.isArray(dayPlan.workoutDetails.exercises) 
+                        exercises: Array.isArray(dayPlan.workoutDetails.exercises)
                             ? dayPlan.workoutDetails.exercises.map(ex => ({ ...ex, completed: ex.completed || false }))
                             : [], // Provide empty array if exercises is not an array
-                        completed: Array.isArray(dayPlan.workoutDetails.exercises) 
+                        completed: Array.isArray(dayPlan.workoutDetails.exercises)
                             ? dayPlan.workoutDetails.exercises.every(ex => ex.completed || false)
                             : false, // Initial check
                     }
                 }));
             });
-            
+
             // Calculate total and completed workouts based on ALL weeks up to current.
             // This might need to be more nuanced if user can go back to previous weeks.
             // For now, assumes progress is linear.
@@ -789,13 +792,13 @@ export const useStore = create<Store>()(
         }
 
         let newNutritionProgress: NutritionProgress | null = null;
-        
+
         // Early guard - validate nutrition plan structure
         if (!currentNPlan || !currentNPlan.multiWeekMealPlans || !Array.isArray(currentNPlan.multiWeekMealPlans)) {
             // We'll return null NutritionProgress, which will preserve any existing progress
         } else {
             const npWeekIndex = currentNPlan.currentWeekIndex || 0;
-            
+
             // Create weekly meal progress data with strict validation
             const weeklyMealProgressData: DailyNutritionProgressItem[][] = Array.isArray(currentNPlan.multiWeekMealPlans)
                 ? currentNPlan.multiWeekMealPlans.map(weeklyPlan => {
@@ -803,7 +806,7 @@ export const useStore = create<Store>()(
                     if (!weeklyPlan || typeof weeklyPlan !== 'object' || weeklyPlan === null) {
                         return []; // Return empty array for this week
                     }
-                    
+
                     try {
                         return Object.entries(weeklyPlan).map(([dayKey, dailyPlan]) => {
                             // Validate dailyPlan and its meals array
@@ -817,7 +820,7 @@ export const useStore = create<Store>()(
                                     dailyTotalFatsLogged: 0,
                                 };
                             }
-                            
+
                             // Process meals with validation
                             const mealsProgress = Array.isArray(dailyPlan.meals)
                                 ? dailyPlan.meals.map((meal: any) => {
@@ -837,7 +840,7 @@ export const useStore = create<Store>()(
                                     };
                                 })
                                 : [];
-                            
+
                             // Calculate initial logged values with validation
                             let loggedCalories = 0;
                             let loggedProtein = 0;
@@ -847,7 +850,7 @@ export const useStore = create<Store>()(
                             if (Array.isArray(mealsProgress)) {
                                 mealsProgress.forEach(progMeal => {
                                     if (progMeal.completed && Array.isArray(dailyPlan.meals)) {
-                                        const originalMeal = dailyPlan.meals.find((m: any) => 
+                                        const originalMeal = dailyPlan.meals.find((m: any) =>
                                             m && m.name === progMeal.name && m.mealType === progMeal.mealType
                                         );
                                         if (originalMeal) {
@@ -875,7 +878,7 @@ export const useStore = create<Store>()(
                     }
                 })
                 : [];
-            
+
             // Only create new progress if we have valid data
             if (Array.isArray(weeklyMealProgressData) && weeklyMealProgressData.length > 0) {
                 newNutritionProgress = {
@@ -884,7 +887,7 @@ export const useStore = create<Store>()(
                 };
             }
         }
-        
+
         const oldWorkoutProgress = get().workoutProgress;
         const oldNutritionProgress = get().nutritionProgress;
 
@@ -896,117 +899,66 @@ export const useStore = create<Store>()(
       },
 
       updateWeightProgress: async (weight) => {
-        const { weightProgress, profile } = get()
-        
-        if (!weightProgress && profile) {
-          set({
-            weightProgress: {
-              dates: [new Date().toISOString().split('T')[0]],
-              weights: [weight],
-              goal: profile.targetWeight || 0
-            }
-          })
-          return
-        }
-        
-        if (!weightProgress) return
-
-        const today = new Date().toISOString().split('T')[0]
-        const dates = [...weightProgress.dates, today]
-        const weights = [...weightProgress.weights, weight]
-
-        set({
-          weightProgress: {
-            ...weightProgress,
-            dates,
-            weights
-          }
-        })
+        const accountId = get().profile?.id;
+        if (!accountId) throw new Error('Please sign in again.');
+        if (!Number.isFinite(weight) || weight < 9 || weight > 500) throw new Error('Please enter a valid weight.');
+        const response = await fetch('/api/user/weight/update', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ weight }),
+        });
+        if (!response.ok) throw new Error('Your weight could not be saved. Please try again.');
+        if (get().profile?.id !== accountId) return;
+        get().updateCurrentWeight(weight);
       },
 
       resetProgress: async () => {
-        // Prevent concurrent resets that could corrupt state
-        if (get().isResetting) {
-          return false;
-        }
-        
+        if (get().isResetting || !get().profile) return false;
+        const accountId = get().profile!.id;
         set({ isResetting: true });
-        
         try {
-          const currentProfile = get().profile;
-          if (!currentProfile) {
-            console.error("Profile not found, cannot reset progress and regenerate plans.");
-            return false;
-          }
-          
-          // Regenerate plans which will also re-initialize progress
-          await get().generatePlans(currentProfile); 
-          // generatePlans now initializes progress itself with currentWeekIndex 0 for both
-          
-          // Double-check that progress was properly initialized
-          const workoutPlan = get().workoutPlan;
-          const workoutProgress = get().workoutProgress;
-          
-          if (workoutPlan && (!workoutProgress || !Array.isArray(workoutProgress.weeklySchedule))) {
-            // Force re-initialization of progress
-            get().initializeProgressFromPlans(workoutPlan, get().nutritionPlan);
-          }
-          
-          // Reset weight progress specifically
-          if (get().weightProgress && currentProfile.targetWeight) {
-              get().initializeWeightProgress(currentProfile.targetWeight);
-          }
-  
+          const response = await fetch('/api/user/reset-progress', { method: 'POST' });
+          if (!response.ok) return false;
+          if (get().profile?.id !== accountId) return false;
+          const profile = get().profile!;
+          get().resetStore();
+          set({ profile: { ...profile, hasCompletedOnboarding: false } });
           return true;
-        } catch (error) {
-          console.error("Error resetting progress:", error);
-          return false;
-        } finally {
-          set({ isResetting: false });
-        }
+        } catch { return false; }
+        finally { if (get().profile?.id === accountId) set({ isResetting: false }); }
       },
 
       updateProfileStats: async (data) => {
         const currentProfile = get().profile;
-        const updatedProfile = { ...(currentProfile || {}), ...data } as Profile;
-        set({ profile: updatedProfile });
-
-        if (data.goalType || data.experienceLevel) {
-          await get().generatePlans(updatedProfile);
-          return { success: true, plansRegenerated: true };
-        }
-        return { success: true, plansRegenerated: false };
+        if (!currentProfile) return { success: false, error: 'Please sign in again.' };
+        try {
+          const response = await fetch('/api/user/profile', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          if (!response.ok) return { success: false, error: result.error || 'Could not save your profile.' };
+          if (get().profile?.id !== currentProfile.id) return { success: false, error: 'Your account changed. Please try again.' };
+          set({ profile: { ...currentProfile, ...result.user } });
+          return { success: true, plansRegenerated: false };
+        } catch { return { success: false, error: 'Could not save your profile. Check your connection and try again.' }; }
       },
 
       initializeWeightProgress: (targetWeight) => {
         set({ weightProgress: { dates: [], weights: [], goal: targetWeight } });
       },
-      
+
       updateCurrentWeight: (weight) => {
+        if (!Number.isFinite(weight) || weight <= 0 || !get().profile) return;
+        const now = new Date();
+        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
         set(state => {
-          const updatedProfile = state.profile ? { ...state.profile, currentWeight: weight } : null;
-          
-          let newWeightProgress = state.weightProgress;
-          if (!newWeightProgress) {
-            // Initialize if null, goal can be taken from profile or a sensible default
-            const goal = state.profile?.targetWeight || weight + 10; // Default goal if not set
-            newWeightProgress = { 
-              dates: [new Date().toISOString().split('T')[0]], 
-              weights: [weight], 
-              goal: goal 
-            };
-          } else if (state.weightProgress) {
-            newWeightProgress = {
-              ...state.weightProgress,
-              dates: [...state.weightProgress.dates, new Date().toISOString().split('T')[0]],
-              weights: [...state.weightProgress.weights, weight],
-              goal: state.weightProgress.goal || weight + 10
-            };
-          }
-          
+          const previous = state.weightProgress;
+          const dates = [...(previous?.dates ?? [])];
+          const weights = [...(previous?.weights ?? [])];
+          const existing = dates.indexOf(today);
+          if (existing >= 0) weights[existing] = weight;
+          else { dates.push(today); weights.push(weight); }
           return {
-            profile: updatedProfile,
-            weightProgress: newWeightProgress,
+            profile: state.profile ? { ...state.profile, currentWeight: weight } : null,
+            weightProgress: { dates, weights, goal: state.profile?.targetWeight ?? weight },
           };
         });
       },
@@ -1023,7 +975,7 @@ export const useStore = create<Store>()(
 
         // Use preferences from the existing plan for consistency
         const newWeekScheduleItems = createStaticWorkoutPlan((currentWPlan as any).preferences);
-        
+
         const updatedMultiWeekSchedules = [...currentWPlan.multiWeekSchedules, newWeekScheduleItems.multiWeekSchedules[0]];
         const newCurrentWeekIndex = currentWPlan.currentWeekIndex + 1;
 
@@ -1038,7 +990,7 @@ export const useStore = create<Store>()(
             }
         }));
         const updatedProgressSchedule = [...currentWProgress.weeklySchedule, newWeekProgressScaffold];
-        
+
         // Recalculate total workouts
         let totalPossible = 0;
         updatedMultiWeekSchedules.forEach(week => {
@@ -1081,17 +1033,17 @@ export const useStore = create<Store>()(
         // For now, generateNewWeeklyMealPlanData creates a random new week.
         // It should use currentNPlan.dailyTargets to maintain consistency.
         const newWeeklyMealData = generateNewWeeklyMealPlanData(currentNPlan); // Pass current plan for reference if needed
-        
+
         const updatedMultiWeekMealPlans = [...currentNPlan.multiWeekMealPlans, newWeeklyMealData];
         const newCurrentWeekIndex = currentNPlan.currentWeekIndex + 1;
 
         // Create new progress scaffold for the new nutrition week
-        const newNutritionWeekProgressScaffold: DailyNutritionProgressItem[] = 
+        const newNutritionWeekProgressScaffold: DailyNutritionProgressItem[] =
             Object.entries(newWeeklyMealData).map(([dayKey, dailyPlan]) => ({
                 dayOfWeek: dayKey.charAt(0).toUpperCase() + dayKey.slice(1),
-                meals: dailyPlan.meals.map((meal: any) => ({ 
-                    mealType: meal.mealType, 
-                    name: meal.name, 
+                meals: dailyPlan.meals.map((meal: any) => ({
+                    mealType: meal.mealType,
+                    name: meal.name,
                     completed: false,
                     originalCalories: meal.calories
                 })),
@@ -1100,7 +1052,7 @@ export const useStore = create<Store>()(
                 dailyTotalCarbsLogged: 0,
                 dailyTotalFatsLogged: 0,
             }));
-        
+
         const updatedProgressWeeklyData = [...currentNProgress.weeklyMealProgress, newNutritionWeekProgressScaffold];
 
         set({
@@ -1133,4 +1085,4 @@ export const useStore = create<Store>()(
       }),
     }
   )
-) 
+)
