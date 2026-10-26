@@ -11,14 +11,14 @@ function load(relativePath, mocks = {}) {
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText
-  const module = { exports: {} }
+  const loadedModule = { exports: {} }
   vm.runInNewContext(code, {
-    module, exports: module.exports,
+    module: loadedModule, exports: loadedModule.exports,
     require: name => name in mocks ? mocks[name] : require(name),
     process: { env: { NEXTAUTH_URL: 'https://beanbuilt.example' } },
     URL, TextDecoder, Uint8Array, console,
   }, { filename })
-  return module.exports
+  return loadedModule.exports
 }
 
 const security = load('src/lib/api-security.ts')
@@ -36,6 +36,11 @@ test('mutations accept same-origin and reject foreign, sibling, opaque, and abse
   assert.equal(security.validateMutationRequest(absent).status, 403)
   absent.headers.set('sec-fetch-site', 'same-origin')
   assert.equal(security.validateMutationRequest(absent), null)
+  const hostSpoof = new Request('https://evil.example/api/user/profile', { method: 'POST', headers: { origin: 'https://evil.example' } })
+  assert.equal(security.validateMutationRequest(hostSpoof).status, 403)
+  hostSpoof.headers.delete('origin')
+  hostSpoof.headers.set('sec-fetch-site', 'same-origin')
+  assert.equal(security.validateMutationRequest(hostSpoof).status, 403)
 })
 
 test('JSON reader enforces content type, parses JSON, rejects malformed and oversized actual body', async () => {
@@ -47,6 +52,42 @@ test('JSON reader enforces content type, parses JSON, rejects malformed and over
   ]) {
     await assert.rejects(security.readJsonBody(request(headers, body), limit), error => security.requestErrorResponse(error)?.status === status)
   }
+  const invalidUtf8 = request({ 'content-type': 'application/json' }, new Uint8Array([0x22, 0xc3, 0x28, 0x22]))
+  await assert.rejects(security.readJsonBody(invalidUtf8), error => security.requestErrorResponse(error)?.status === 400)
+})
+
+test('concurrent onboarding submissions can create only one set of plans', async () => {
+  let completed = false
+  let workouts = 0
+  let nutrition = 0
+  const user = { id: 'signed-in-user' }
+  const tx = {
+    user: {
+      updateMany: async () => {
+        if (completed) return { count: 0 }
+        completed = true
+        return { count: 1 }
+      },
+      findUnique: async () => user,
+    },
+    workoutPlan: { create: async () => { workouts++ } },
+    nutritionPlan: { create: async () => { nutrition++ } },
+  }
+  const route = load('src/app/api/user/onboarding/route.ts', {
+    '@/lib/api-security': security,
+    'next-auth': { getServerSession: async () => ({ user }) },
+    '@/lib/auth': { authOptions: {} },
+    '@/lib/prisma': { prisma: { $transaction: async fn => fn(tx) } },
+    '@/data/workouts': { createStaticWorkoutPlan: () => ({ planName: 'Workout' }) },
+    '@/data/meals': { createStaticNutritionPlan: () => ({ planName: 'Nutrition' }) },
+    '@/lib/validations/api-schemas': load('src/lib/validations/api-schemas.ts'),
+  })
+  const body = { name: 'Test', age: 30, sex: 'male', currentWeight: 160, targetWeight: 150, height: 70, goalType: 'general_fitness', experienceLevel: 'beginner', preferredWorkoutDays: ['monday'] }
+  const results = await Promise.all(Array.from({ length: 20 }, () => route.POST(request({ 'content-type': 'application/json' }, JSON.stringify(body)))))
+  assert.equal(results.filter(result => result.status === 200).length, 1)
+  assert.equal(results.filter(result => result.status === 409).length, 19)
+  assert.equal(workouts, 1)
+  assert.equal(nutrition, 1)
 })
 
 test('profile validation rejects Prisma operator injection, status tampering and invalid metrics', () => {

@@ -71,27 +71,35 @@ export async function POST(req: Request) {
     if (!workoutPlan || !nutritionPlan) {
       return NextResponse.json({ error: 'Failed to generate workout or nutrition plan' }, { status: 500 });
     }
-    const [user] = await prisma.$transaction([
-      prisma.user.update({ where: { id: session.user.id }, data: userUpdateData }),
-      prisma.workoutPlan.create({
+    const userId = session.user.id
+    const user = await prisma.$transaction(async tx => {
+      // Atomically claim onboarding so concurrent/replayed requests cannot create unlimited plans.
+      const updated = await tx.user.updateMany({
+        where: { id: userId, hasCompletedOnboarding: false },
+        data: userUpdateData,
+      })
+      if (updated.count !== 1) return null
+      await tx.workoutPlan.create({
         data: {
-          userId: session.user.id,
+          userId,
           planName: (workoutPlan as any).planName || "Generated Workout Plan",
           plan: workoutPlan as any, // Changed from planData to plan
           startDate: new Date(),
           ...(finalTargetDate && { endDate: finalTargetDate }), // Set endDate if targetDate is available
         }
-      }),
-      prisma.nutritionPlan.create({
+      })
+      await tx.nutritionPlan.create({
         data: {
-          userId: session.user.id,
+          userId,
           planName: (nutritionPlan as any).planName || "Generated Nutrition Plan",
           plan: nutritionPlan as any, // Changed from planData to plan
           startDate: new Date(),
           ...(finalTargetDate && { endDate: finalTargetDate }), // Set endDate if targetDate is available
         }
       })
-    ]);
+      return tx.user.findUnique({ where: { id: userId } })
+    })
+    if (!user) return NextResponse.json({ error: 'Onboarding is already complete or the user was not found.' }, { status: 409 })
     return NextResponse.json({
       message: 'Onboarding successful and plans generated',
       user, // Send back updated user

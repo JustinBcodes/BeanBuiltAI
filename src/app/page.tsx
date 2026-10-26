@@ -101,7 +101,8 @@ export default function LandingPage() {
 
         <motion.p
           className={`${styles.heroWord} ${styles.heroWordLeft}`}
-          initial={{ opacity: 0, x: -40 }}
+          aria-hidden="true"
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
@@ -109,7 +110,8 @@ export default function LandingPage() {
         </motion.p>
         <motion.p
           className={`${styles.heroWord} ${styles.heroWordRight}`}
-          initial={{ opacity: 0, x: 40 }}
+          aria-hidden="true"
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.08 }}
         >
@@ -123,7 +125,7 @@ export default function LandingPage() {
           <motion.h1
             id="hero-heading"
             className={styles.heroTitle}
-            initial={{ opacity: 0, y: 30 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.75, ease: 'easeOut', delay: 0.12 }}
           >
@@ -132,18 +134,15 @@ export default function LandingPage() {
           </motion.h1>
           <motion.p
             className={styles.heroCopy}
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.28 }}
           >
-            your personal fitness &amp; nutrition co-pilot — ai
-            <br />
-            workouts, meal plans, and progress tracking, built
-            <br />
-            around you.
+            Your personal fitness and nutrition co-pilot. Workouts, meal plans,
+            and progress tracking, built around you.
           </motion.p>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.4 }}
           >
@@ -155,7 +154,7 @@ export default function LandingPage() {
 
         <motion.div
           className={`${styles.floatingStat} ${styles.floatingStatRight}`}
-          initial={{ opacity: 0, x: 30 }}
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, delay: 0.5 }}
         >
@@ -165,7 +164,7 @@ export default function LandingPage() {
         </motion.div>
         <motion.div
           className={`${styles.floatingStat} ${styles.floatingStatLeft}`}
-          initial={{ opacity: 0, x: -30 }}
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, delay: 0.6 }}
         >
@@ -175,7 +174,7 @@ export default function LandingPage() {
         </motion.div>
         <motion.div
           className={`${styles.floatingStat} ${styles.floatingStatBottom}`}
-          initial={{ opacity: 0, x: 30 }}
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, delay: 0.7 }}
         >

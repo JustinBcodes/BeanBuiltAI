@@ -15,7 +15,7 @@ const nextConfig = {
     }]
   },
   images: {
-    domains: ['lh3.googleusercontent.com'],
+    remotePatterns: [{ protocol: 'https', hostname: 'lh3.googleusercontent.com' }],
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };

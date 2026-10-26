@@ -8,12 +8,17 @@ class ApiRequestError extends Error {
 export function validateMutationRequest(request: Request): NextResponse | null {
   const origin = request.headers.get('origin')
   const fetchSite = request.headers.get('sec-fetch-site')
-  const allowedOrigins = new Set([new URL(request.url).origin])
-  if (process.env.NEXTAUTH_URL) {
-    try { allowedOrigins.add(new URL(process.env.NEXTAUTH_URL).origin) } catch { /* Invalid deployment config is not trusted. */ }
+  let allowedOrigin: string
+  try {
+    if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) throw new Error('Missing origin')
+    const configuredUrl = new URL(process.env.NEXTAUTH_URL || request.url)
+    if (process.env.NODE_ENV === 'production' && configuredUrl.protocol !== 'https:') throw new Error('HTTPS required')
+    allowedOrigin = configuredUrl.origin
+  } catch {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 503 })
   }
   if (fetchSite === 'cross-site' || fetchSite === 'same-site' ||
-      (origin ? !allowedOrigins.has(origin) : fetchSite !== 'same-origin')) {
+      (origin ? origin !== allowedOrigin : fetchSite !== 'same-origin' || new URL(request.url).origin !== allowedOrigin)) {
     return NextResponse.json({ error: 'Request origin is not allowed' }, { status: 403 })
   }
   return null
@@ -21,7 +26,7 @@ export function validateMutationRequest(request: Request): NextResponse | null {
 
 /** Bound actual bytes read, including requests without a Content-Length header. */
 export async function readJsonBody(request: Request, maxBytes = 256 * 1024): Promise<unknown> {
-  if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json') {
+  if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
     throw new ApiRequestError('Content-Type must be application/json', 415)
   }
   if (Number(request.headers.get('content-length')) > maxBytes) {
@@ -46,7 +51,7 @@ export async function readJsonBody(request: Request, maxBytes = 256 * 1024): Pro
   const bytes = new Uint8Array(total)
   let offset = 0
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
-  try { return JSON.parse(new TextDecoder().decode(bytes)) }
+  try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) }
   catch { throw new ApiRequestError('Request body must be valid JSON', 400) }
 }
 

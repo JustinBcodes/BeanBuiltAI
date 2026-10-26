@@ -9,9 +9,9 @@ const Stripe = require('stripe')
 function load(relative, mocks = {}, env = {}) {
   const filename = path.resolve(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText
-  const module = { exports: {} }
-  vm.runInNewContext(code, { module, exports: module.exports, require: name => name in mocks ? mocks[name] : require(name), process: { env }, URL, Buffer, TextDecoder, Uint8Array, console }, { filename })
-  return module.exports
+  const loadedModule = { exports: {} }
+  vm.runInNewContext(code, { module: loadedModule, exports: loadedModule.exports, require: name => name in mocks ? mocks[name] : require(name), process: { env }, URL, Buffer, TextDecoder, Uint8Array, console }, { filename })
+  return loadedModule.exports
 }
 const env = { NEXTAUTH_URL: 'https://beanbuilt.example', STRIPE_SECRET_KEY: 'sk_test_dummy', STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_PRICE_ID: 'price_pro' }
 const tools = load('src/lib/pro-tools.ts')

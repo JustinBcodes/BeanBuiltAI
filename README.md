@@ -22,7 +22,7 @@ Core tools stay available while Stripe is unconfigured. Workout/meal completion 
 
 ## Tech Stack
 
-- Next.js 14 (App Router)
+- Next.js 16 (App Router; Node.js 20.9 or later)
 - React
 - TypeScript
 - Prisma (PostgreSQL)
@@ -66,6 +66,14 @@ Core tools stay available while Stripe is unconfigured. Workout/meal completion 
    ```bash
    npm run dev
    ```
+
+For production, set `NEXTAUTH_URL` to the exact public HTTPS origin used by
+the app. Requests that change account data are rejected if their origin does
+not match it. Configure the reverse proxy to redirect alternate hostnames to
+the canonical origin, and apply request-size, timeout, and traffic limits at
+the edge. Set AI-provider spending caps separately; per-account AI limits do
+not prevent abuse through many accounts. Verify database migration status and
+Stripe configuration in a staging environment before deploying.
 
 ## Project Structure
 
